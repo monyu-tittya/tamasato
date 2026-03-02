@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>さとし育成ゲーム</title>
+    <link rel="stylesheet" href="style.css">
+    <!-- Google Fonts: ドット絵風＆丸ゴシック -->
+    <link href="https://fonts.googleapis.com/css2?family=DotGothic16&family=M+PLUS+Rounded+1c:wght@400;700&display=swap" rel="stylesheet">
+</head>
+<body>
+    <div id="game-container">
+        <!-- Header: 日数と時間 -->
+        <header id="game-header">
+            <div id="day-display">0日目</div>
+            <div id="time-display">8:00</div>
+            <button id="btn-next-time" class="btn-time">次へ▶</button>
+        </header>
+
+        <!-- Main Screen: キャラクターやイベント表示領域 -->
+        <main id="game-screen">
+            <div id="room-background"></div>
+
+            <!-- さとしのキャラクター表示 -->
+            <div id="character">
+                <div id="char-sprite" class="form-baby">🥚</div>
+            </div>
+
+            <!-- イベント用インジケーター -->
+            <div id="poop-container"></div>
+            <div id="sick-indicator" class="hidden">🏥 病気！</div>
+            <div id="enemy-indicator" class="hidden">😈 アキラ襲来！</div>
+
+            <!-- 夜間・死亡オーバーレイ -->
+            <div id="lights-overlay" class="hidden"></div>
+            <div id="game-over-overlay" class="hidden">
+                <h2>ゲームオーバー</h2>
+                <p id="game-over-reason">さとしは死んでしまいました...</p>
+                <button id="btn-reset">卵からやり直す</button>
+            </div>
+        </main>
+
+        <!-- Status Bar (デバッグ用/裏ステータス) -->
+        <section id="status-bar">
+            <span>腹:<span id="stat-hunger">0</span></span>
+            <span>機嫌:<span id="stat-mood">0</span></span>
+            <span>信:<span id="stat-trust">0</span></span>
+            <span>ﾐｽ:<span id="stat-miss">0</span></span>
+        </section>
+
+        <!-- Action Menu: 下部の操作ボタン -->
+        <nav id="action-menu">
+            <button class="action-btn" id="btn-food"><span>🍚</span>ごはん</button>
+            <button class="action-btn" id="btn-play"><span>📺️</span>あそぶ</button>
+            <button class="action-btn" id="btn-toilet"><span>🚽</span>トイレ</button>
+            <button class="action-btn" id="btn-sick"><span>💉</span>びょうき</button>
+            <button class="action-btn" id="btn-discipline"><span>🗣️</span>しつけ</button>
+            <button class="action-btn" id="btn-black"><span>😈</span>ブラック</button>
+            <button class="action-btn" id="btn-lights"><span>💡</span>電気</button>
+            <button class="action-btn" id="btn-encyclopedia"><span>📖</span>図鑑</button>
+        </nav>
+
+        <!-- サブメニュー (ごはんと躾用) -->
+        <div id="food-menu" class="sub-menu hidden">
+            <button id="btn-food-onigiri" class="sub-btn">🍙 おにぎり</button>
+            <button id="btn-food-choco" class="sub-btn">🍫 チョコ</button>
+            <button class="btn-cancel">戻る</button>
+        </div>
+        <div id="discipline-menu" class="sub-menu hidden">
+            <button id="btn-disc-scold" class="sub-btn">💢 叱る</button>
+            <button id="btn-disc-praise" class="sub-btn">✨ 褒める</button>
+            <button class="btn-cancel">戻る</button>
+        </div>
+
+        <!-- モーダル: 図鑑 -->
+        <div id="encyclopedia-modal" class="modal hidden">
+            <div class="modal-content">
+                <span class="close-btn" id="btn-close-encyclopedia">&times;</span>
+                <h2>さとし図鑑</h2>
+                <div id="encyclopedia-grid">
+                    <!-- JavaScriptで動的に追加 -->
+                </div>
+            </div>
+        </div>
+    </div>
+    <script src="script.js"></script>
+</body>
+</html>
