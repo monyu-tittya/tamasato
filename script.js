@@ -290,7 +290,8 @@ function treatSick() {
     if (state.isSick) {
         state.isSick = false;
         state.stats.sickIgnoredCount = 0;
-        showFeedback("💉 注射チックン！治った！");
+        state.isAppealing = true; // 治療後に「褒める」チャンスを残す
+        showFeedback("💉 注射チックン！治った！褒めてあげよう！");
     } else {
         showFeedback("病気じゃないよ");
         state.careMistakes++;
@@ -303,7 +304,8 @@ function useBlack() {
     if (state.enemyPresent) {
         state.enemyPresent = false;
         state.stats.blackCount++;
-        showFeedback("⚡ デビルサンダー！アキラを撃退した！");
+        state.isAppealing = true; // 撃退後に「褒める」チャンスを残す
+        showFeedback("⚡ デビルサンダー！アキラを撃退した！褒めてあげよう！");
     } else {
         showFeedback("誰もいないのに...さとしが怯えている");
         state.careMistakes++;
@@ -327,13 +329,13 @@ function scold() {
     els.discMenu.classList.add('hidden');
     if (state.isGameOver) return;
     if (state.isDemanding) {
-        showFeedback("💢 ちゃんと説教した");
+        showFeedback("💢 ちゃんと説教した！信頼度アップ！");
         updateStat('trust', 1, -5, 10);
         state.isDemanding = false;
     } else {
-        showFeedback("なんでもないのに怒られた...");
+        showFeedback("なんでもないのに怒られた...信頼度ダウン");
         state.careMistakes++;
-        updateStat('trust', -1, -5, 10);
+        updateStat('trust', -2, -5, 10);
     }
     updateUI(); saveState();
 }
@@ -341,9 +343,14 @@ function scold() {
 function praise() {
     els.discMenu.classList.add('hidden');
     if (state.isGameOver) return;
-    if (state.isSick || state.enemyPresent) {
-        showFeedback("✨ えらいね！助けを呼べたね");
+    if (state.isSick || state.enemyPresent || state.isAppealing) {
+        showFeedback("✨ えらいね！信頼度アップ！");
         updateStat('trust', 1, -5, 10);
+        state.isAppealing = false;
+    } else if (state.isDemanding) {
+        showFeedback("ワガママを褒めちゃダメ！信頼度ダウン");
+        state.careMistakes++;
+        updateStat('trust', -1, -5, 10);
     } else {
         showFeedback("なんでもないのに褒められた...");
         state.careMistakes++;
@@ -356,6 +363,16 @@ function praise() {
 function advanceTime() {
     if (state.isGameOver) return;
 
+    // ★ Day0のベビー期は1ターンで即座にDay1へ進む（仕様通り）
+    if (state.form === FORMS.BABY) {
+        state.day = 1;
+        state.timeIndex = 0;
+        checkEvolution();
+        updateUI();
+        saveState();
+        return;
+    }
+
     // 前ターンの評価
     // 消灯チェック (21:00からの進行)
     if (state.timeIndex === 5) {
@@ -364,7 +381,7 @@ function advanceTime() {
         }
     }
 
-    state.lightsOff = false; // 朝になったら必ず点く。または昼に進む時に点く。
+    state.lightsOff = false;
 
     // 死亡とミス判定
     if (state.poopCount >= 1) state.careMistakes++;
@@ -376,21 +393,21 @@ function advanceTime() {
     }
     if (state.isSick) {
         state.stats.sickIgnoredCount++;
-        if (state.stats.sickIgnoredCount >= 2) { // ２ターン放置で死亡
+        if (state.stats.sickIgnoredCount >= 2) {
             showGameOver("病気を放置しすぎて死んでしまった...");
             return;
         }
     }
 
     // 死亡判定 (空腹0のままターン進行)
-    if (state.hunger <= 0 && state.form !== FORMS.BABY) {
+    if (state.hunger <= 0) {
         showGameOver("空腹で死んでしまった...");
         return;
     }
 
     // 時間と日数の進行
     state.timeIndex++;
-    state.isDemanding = false; // おねだりフラグリセット
+    state.isDemanding = false;
 
     if (state.timeIndex >= TIME_SESSIONS.length) {
         state.timeIndex = 0;
@@ -398,32 +415,45 @@ function advanceTime() {
         checkEvolution();
     }
 
-    // 昼間の変化 (Day0のBABY以外は変化する)
-    if (state.timeIndex > 0 && state.timeIndex < 5 && state.form !== FORMS.BABY && !state.isGameOver) {
+    // 昼間の変化（BABY以外の全形態で発動）
+    if (state.timeIndex > 0 && state.timeIndex < 5 && !state.isGameOver) {
         updateStat('hunger', -1);
         updateStat('mood', -1);
 
-        // ランダムなおねだり（ワガママ）発生: 機嫌と空腹が十分あるのにおねだりしてくる => 「叱る」チャンス
-        if (state.hunger >= 4 && state.mood >= 4 && Math.random() < 0.3) {
+        // ★ おねだり（ワガママ）発生: 空腹か機嫌が満タンなのにアピールしてくる => 「叱る」チャンス
+        if ((state.hunger >= 4 || state.mood >= 4) && Math.random() < 0.4) {
             state.isDemanding = true;
-            showFeedback("なんだかワガママを言っているぞ...");
+            const msgs = [
+                "🍚 お腹すいた〜と言っているが…さっき食べたばかりだぞ？",
+                "📺 遊んで遊んで〜！と言っているが…さっき遊んだだろ？",
+                "🍫 チョコ！チョコ！とねだっている！",
+                "なんだかワガママを言っているぞ..."
+            ];
+            showFeedback(msgs[Math.floor(Math.random() * msgs.length)]);
+        }
+
+        // ★ 助けてアピール発生（病気・敵関係なく、信頼度を上げるチャンス）=> 「褒める」チャンス
+        if (!state.isDemanding && Math.random() < 0.25) {
+            state.isAppealing = true;
+            const msgs = [
+                "😢 なんだか寂しそうにしている…褒めてあげよう！",
+                "✨ さとしが何か頑張ったみたい！褒めてあげよう！",
+                "🥺 こっちを見て甘えている…褒めてあげよう！"
+            ];
+            showFeedback(msgs[Math.floor(Math.random() * msgs.length)]);
         }
 
         // ランダムイベント
         if (Math.random() < 0.25 && state.poopCount < 4) state.poopCount++;
-        if (Math.random() < 0.15 && !state.isSick) {
+        if (Math.random() < 0.2 && !state.isSick) {
             state.isSick = true;
-            // 病気になった瞬間にアピール => 「褒める」チャンス
-            showFeedback("具合が悪そう...助けを求めている！");
+            showFeedback("🏥 具合が悪そう...助けを求めている！");
         }
         if (Math.random() < 0.15 && !state.enemyPresent && state.day >= 2) {
-            state.enemyPresent = true; // アキラは2日目以降
-            // 敵襲来時にアピール => 「褒める」チャンス
-            showFeedback("アキラが来た！助けを求めている！");
+            state.enemyPresent = true;
+            showFeedback("😈 アキラが来た！助けを求めている！");
         }
     }
-
-    // もし引いた結果空腹が0になった場合、警告を出すかそのままか(ここでは自然減による直後の死亡は避けるため、次のターン進行時に死亡とする)
 
     updateUI();
     saveState();
@@ -437,29 +467,34 @@ function checkEvolution() {
         state.form = FORMS.TAMA;
         showFeedback("たまさとしに進化した！");
     } else if (state.day === 5) {
-        // 最終進化判定
+        // ★ 最終進化判定（信頼度も全ルートに関与）
         let nextForm = FORMS.NORMAL;
 
-        // 日数はDay5。ここまでの stats 等で判定
-        if (state.careMistakes === 0 && state.stats.playCount === 0 && state.stats.chocoCount === 0) {
+        if (state.careMistakes === 0 && state.stats.playCount === 0 && state.stats.chocoCount === 0 && state.trust >= 2) {
+            // 反転さとし: ミス0、遊び・チョコ未使用、信頼度2以上（ストイック）
             nextForm = FORMS.REVERSE;
-        } else if (state.careMistakes === 0 && state.stats.playCount >= 3 && state.stats.chocoCount >= 3) {
+        } else if (state.careMistakes === 0 && state.stats.playCount >= 3 && state.stats.chocoCount >= 3 && state.trust >= 3) {
+            // レジェンドYoutuber: ミス0、遊び・チョコ積極活用、信頼度高
             nextForm = FORMS.LEGEND;
-        } else if (state.stats.onigiriCount === 0 && state.stats.chocoCount > 0 && state.trust >= 3) {
+        } else if (state.stats.onigiriCount === 0 && state.stats.chocoCount > 0 && state.trust >= 4) {
+            // アイドルさとし: チョコのみ、信頼度高
             nextForm = FORMS.IDOL;
-        } else if (state.stats.blackCount >= 1 && state.trust >= 3) {
+        } else if (state.stats.blackCount >= 1 && state.trust >= 2) {
+            // 普通のさとし: ブラック使用、信頼度まぁまぁ
             nextForm = FORMS.NORMAL;
-        } else if (state.stats.playCount === 0 && state.stats.blackCount === 0) {
+        } else if (state.stats.playCount === 0 && state.stats.blackCount === 0 && state.trust < 2) {
+            // サラリーマンさとし: 遊び・ブラック未使用、信頼度低め
             nextForm = FORMS.SALARYMAN;
+        } else if (state.trust >= 3) {
+            nextForm = FORMS.NORMAL;
         } else {
-            nextForm = FORMS.NORMAL; // Fallback
+            nextForm = FORMS.SALARYMAN; // 信頼度が低いとサラリーマン
         }
 
         state.form = nextForm;
         showFeedback(`進化！！「${getFormName(nextForm)}」になった！`);
         unlockEncyclopedia(nextForm);
 
-        // 進化後はいつでもリセットできるようにボタンを表示
         showEvolutionResetButton();
     }
 }
@@ -469,28 +504,55 @@ function showEvolutionResetButton() {
     if (!btn) {
         btn = document.createElement('button');
         btn.id = 'btn-evolve-reset';
-        btn.innerText = '新しい卵から育てる';
-        btn.style.position = 'absolute';
-        btn.style.bottom = '10px';
-        btn.style.right = '10px';
-        btn.style.padding = '8px 12px';
-        btn.style.background = '#ff4444';
-        btn.style.color = '#fff';
-        btn.style.border = '2px solid #fff';
-        btn.style.borderRadius = '10px';
-        btn.style.fontFamily = 'var(--font-pixel)';
-        btn.style.zIndex = '40';
-        btn.style.cursor = 'pointer';
-        btn.style.boxShadow = '0 2px 5px rgba(0,0,0,0.3)';
-
+        btn.innerText = '🥚 新しい卵から育てる';
+        btn.style.cssText = `
+            position: absolute; bottom: 15px; right: 10px;
+            padding: 10px 16px; background: linear-gradient(135deg, #ff6b6b, #ee5a24);
+            color: #fff; border: 2px solid #fff; border-radius: 12px;
+            font-family: var(--font-pixel); font-size: 0.85rem;
+            z-index: 40; cursor: pointer;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+        `;
         btn.addEventListener('click', () => {
-            if (confirm("今のさとしとお別れして、新しい卵から育てますか？")) {
-                resetGame();
-                btn.remove();
-            }
+            // confirm()の代わりにカスタム確認UIを表示
+            showResetConfirm();
         });
         document.getElementById('game-screen').appendChild(btn);
     }
+}
+
+function showResetConfirm() {
+    let overlay = document.getElementById('reset-confirm-overlay');
+    if (overlay) overlay.remove();
+
+    overlay = document.createElement('div');
+    overlay.id = 'reset-confirm-overlay';
+    overlay.style.cssText = `
+        position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+        background: rgba(0,0,0,0.7); z-index: 50;
+        display: flex; flex-direction: column; justify-content: center; align-items: center;
+        text-align: center; color: white; padding: 20px;
+    `;
+    overlay.innerHTML = `
+        <div style="background: #333; padding: 25px; border-radius: 16px; max-width: 85%;">
+            <p style="font-size: 1.1rem; margin-bottom: 20px;">今のさとしとお別れして、<br>新しい卵から育てますか？</p>
+            <div style="display: flex; gap: 15px; justify-content: center;">
+                <button id="confirm-reset-yes" style="padding: 12px 25px; background: #ff4444; color: white; border: none; border-radius: 10px; font-size: 1rem; cursor: pointer;">はい</button>
+                <button id="confirm-reset-no" style="padding: 12px 25px; background: #666; color: white; border: none; border-radius: 10px; font-size: 1rem; cursor: pointer;">いいえ</button>
+            </div>
+        </div>
+    `;
+    document.getElementById('game-screen').appendChild(overlay);
+
+    document.getElementById('confirm-reset-yes').addEventListener('click', () => {
+        overlay.remove();
+        const evolBtn = document.getElementById('btn-evolve-reset');
+        if (evolBtn) evolBtn.remove();
+        resetGame();
+    });
+    document.getElementById('confirm-reset-no').addEventListener('click', () => {
+        overlay.remove();
+    });
 }
 
 function getFormName(formId) {
