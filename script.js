@@ -24,6 +24,12 @@ const DEFAULT_STATE = {
     enemyPresent: false,
     lightsOff: false,
     isGameOver: false,
+    actionsLeft: 3,
+    // --- 3ボタンUI用ステート ---
+    cursorIndex: -1, // 0〜6: 選択中アイコン、-1: 未選択
+    subScreen: null, // null, 'clock', 'stats', 'submenu'
+    submenuIndex: 0,
+    // ----------------------------
     stats: {
         playCount: 0,
         chocoCount: 0,
@@ -34,37 +40,57 @@ const DEFAULT_STATE = {
 };
 
 let state = {};
+let currentSubmenuOptions = [];
 
 // DOM Elements
 const els = {
-    dayDisp: document.getElementById('day-display'),
-    timeDisp: document.getElementById('time-display'),
+    // スクリーンと表示領域
+    lcdScreen: document.getElementById('lcd-screen'),
+    mainDisplay: document.getElementById('main-display'),
     charSprite: document.getElementById('char-sprite'),
     characterBox: document.getElementById('character'),
-    hungerStat: document.getElementById('stat-hunger'),
-    moodStat: document.getElementById('stat-mood'),
-    trustStat: document.getElementById('stat-trust'),
-    missStat: document.getElementById('stat-miss'),
     poopContainer: document.getElementById('poop-container'),
     sickInd: document.getElementById('sick-indicator'),
     enemyInd: document.getElementById('enemy-indicator'),
     lightsOverlay: document.getElementById('lights-overlay'),
-    gameOverOverlay: document.getElementById('game-over-overlay'),
-    gameOverReason: document.getElementById('game-over-reason'),
+    feedbackMsg: document.getElementById('feedback-msg'),
 
-    foodMenu: document.getElementById('food-menu'),
-    discMenu: document.getElementById('discipline-menu'),
-    encycModal: document.getElementById('encyclopedia-modal')
+    // サブスクリーン
+    clockScreen: document.getElementById('clock-screen'),
+    statsScreen: document.getElementById('stats-screen'),
+    submenuScreen: document.getElementById('submenu-screen'),
+    submenuTitle: document.getElementById('submenu-title'),
+    submenuOptions: document.getElementById('submenu-options'),
+    gameOverScreen: document.getElementById('game-over-screen'),
+    gameOverReason: document.getElementById('game-over-reason'),
+    minigameScreen: document.getElementById('minigame-screen'),
+
+    // 外部チート表示用
+    extHunger: document.getElementById('ext-hunger'),
+    extMood: document.getElementById('ext-mood'),
+    extMistakes: document.getElementById('ext-mistakes'),
+
+    // 時計のテキスト用
+    dayDisp: document.getElementById('day-display'),
+    timeDisp: document.getElementById('time-display'),
+
+    // アイコン列
+    icons: document.querySelectorAll('.icon'),
+
+    // ハードウェアボタン
+    btnA: document.getElementById('btn-a'),
+    btnB: document.getElementById('btn-b'),
+    btnC: document.getElementById('btn-c')
 };
 
 function init() {
     loadState();
     if (state.isGameOver) {
-        showGameOver(state.isGameOverReason || "さとしは死んでしまいました...");
+        showGameOver(state.isGameOverReason || "☠");
     } else {
         updateUI();
         if (state.day >= 5) {
-            showEvolutionResetButton();
+            showFeedback(`✨ ${getFormName(state.form)} C長押しﾘｾｯﾄ`);
         }
     }
     setupEventListeners();
@@ -86,25 +112,56 @@ function loadState() {
 
 function resetGame() {
     state = JSON.parse(JSON.stringify(DEFAULT_STATE));
+    // 幽霊を消す
+    const ghost = document.getElementById('ghost-float');
+    if (ghost) ghost.remove();
     saveState();
-    els.gameOverOverlay.classList.add('hidden');
     updateUI();
 }
 
 // ------ UI更新 ------
 function updateUI() {
-    els.dayDisp.innerText = `${state.day}日目`;
-    els.timeDisp.innerText = TIME_SESSIONS[state.timeIndex];
+    // アイコンのカーソル状態更新
+    els.icons.forEach(icon => {
+        if (parseInt(icon.dataset.index) === state.cursorIndex) {
+            icon.classList.add('active');
+        } else {
+            icon.classList.remove('active');
+        }
+    });
 
-    els.hungerStat.innerText = state.hunger;
-    els.moodStat.innerText = state.mood;
-    els.trustStat.innerText = state.trust;
-    els.missStat.innerText = state.careMistakes;
+    // 生存中は幽霊を消す
+    if (!state.isGameOver) {
+        const ghost = document.getElementById('ghost-float');
+        if (ghost) ghost.remove();
+    }
 
+    // サブスクリーン切り替え
+    els.clockScreen.classList.toggle('hidden', state.subScreen !== 'clock');
+    els.statsScreen.classList.toggle('hidden', state.subScreen !== 'stats');
+    els.submenuScreen.classList.toggle('hidden', state.subScreen !== 'submenu');
+    els.minigameScreen.classList.toggle('hidden', state.subScreen !== 'minigame');
+    els.gameOverScreen.classList.toggle('hidden', !state.isGameOver);
+
+    if (state.isGameOver) {
+        els.gameOverReason.innerText = state.isGameOverReason || "しんでしまった";
+    }
+
+    // 時計更新
+    els.dayDisp.innerText = `📅 ${state.day}`;
+    els.timeDisp.innerText = `⏰ ${TIME_SESSIONS[state.timeIndex]} (🎯${state.actionsLeft})`;
+
+    // ステータス更新（ハートで表現）
+    document.getElementById('stat-day').innerText = state.day;
+    document.getElementById('stat-hunger-hearts').innerText = "🖤".repeat(state.hunger) + "🤍".repeat(5 - state.hunger);
+    document.getElementById('stat-mood-hearts').innerText = "🖤".repeat(state.mood) + "🤍".repeat(5 - state.mood);
+
+    // インジケーター類
     els.sickInd.classList.toggle('hidden', !state.isSick);
     els.enemyInd.classList.toggle('hidden', !state.enemyPresent);
     els.lightsOverlay.classList.toggle('hidden', !state.lightsOff);
 
+    // うんち描画
     els.poopContainer.innerHTML = '';
     for (let i = 0; i < state.poopCount; i++) {
         const poop = document.createElement('span');
@@ -112,11 +169,38 @@ function updateUI() {
         els.poopContainer.appendChild(poop);
     }
 
+    // サブメニュー更新
+    if (state.subScreen === 'submenu') {
+        els.submenuOptions.innerHTML = '';
+        currentSubmenuOptions.forEach((opt, idx) => {
+            const div = document.createElement('div');
+            div.className = 'menu-option' + (idx === state.submenuIndex ? ' selected' : '');
+            div.innerText = (idx === state.submenuIndex ? '▶ ' : '  ') + opt.label;
+            els.submenuOptions.appendChild(div);
+        });
+    }
+
+    // 外部時刻表示の更新
+    const extDay = document.getElementById('ext-day');
+    const extTime = document.getElementById('ext-time');
+    if (extDay) extDay.innerText = `${state.day}日目`;
+    if (extTime) extTime.innerText = TIME_SESSIONS[state.timeIndex];
+
+    // 外部ステータス（チート）更新
+    if (els.extHunger) els.extHunger.innerText = state.hunger;
+    if (els.extMood) els.extMood.innerText = state.mood;
+    if (els.extMistakes) els.extMistakes.innerText = state.careMistakes;
+
     updateCharacterSprite();
     updateBackground();
 }
 
 function updateCharacterSprite() {
+    // 死亡時はお墓表示
+    if (state.isGameOver) {
+        els.charSprite.innerText = '🪦';
+        return;
+    }
     const sprites = {
         [FORMS.BABY]: "🥚",
         [FORMS.MARU]: "👶",
@@ -131,100 +215,239 @@ function updateCharacterSprite() {
 }
 
 function updateBackground() {
-    const screen = document.getElementById('game-screen');
-    if (state.timeIndex === 5) { // 21:00
-        screen.style.backgroundColor = 'var(--game-bg-night)';
-    } else if (state.timeIndex === 4) { // 18:00
-        screen.style.backgroundColor = 'var(--game-bg-evening)';
-    } else {
-        screen.style.backgroundColor = 'var(--game-bg-day)';
-    }
+    const screen = document.getElementById('main-display');
+    const container = document.getElementById('game-container');
+
+    // LCD画面内の背景色
+    screen.style.backgroundColor = '#8fb488'; // 常に液晶のデフォルト色にする
+
+    // 画面外の背景色（時間帯に応じたクラスを適用）
+    const timeClasses = ['time-morning', 'time-midday', 'time-noon', 'time-afternoon', 'time-evening', 'time-night'];
+    container.classList.remove(...timeClasses);
+    container.classList.add(timeClasses[state.timeIndex] || 'time-morning');
 }
 
 function showGameOver(reason) {
     state.isGameOver = true;
     state.isGameOverReason = reason;
+    state.subScreen = null;
+    state.cursorIndex = -1;
+
+    // 既存の幽霊を削除
+    const oldGhost = document.getElementById('ghost-float');
+    if (oldGhost) oldGhost.remove();
+
+    // 👻 幽霊を浮かべる
+    const ghost = document.createElement('div');
+    ghost.id = 'ghost-float';
+    ghost.innerText = '👻';
+    els.mainDisplay.appendChild(ghost);
+
     saveState();
-    els.gameOverReason.innerText = reason;
-    els.gameOverOverlay.classList.remove('hidden');
+    updateUI();
 }
 
 function showFeedback(msg) {
-    let fb = document.getElementById('feedback-msg');
-    if (!fb) {
-        fb = document.createElement('div');
-        fb.id = 'feedback-msg';
-        fb.style.position = 'absolute';
-        fb.style.top = '15px';
-        fb.style.width = '90%';
-        fb.style.left = '5%';
-        fb.style.textAlign = 'center';
-        fb.style.color = '#333';
-        fb.style.fontWeight = 'bold';
-        fb.style.background = 'rgba(255,255,255,0.95)';
-        fb.style.padding = '10px';
-        fb.style.borderRadius = '15px';
-        fb.style.zIndex = '50';
-        fb.style.transition = 'opacity 0.3s, transform 0.3s';
-        fb.style.boxShadow = '0 5px 15px rgba(0,0,0,0.2)';
-        fb.style.transform = 'translateY(-20px)';
-        document.getElementById('game-screen').appendChild(fb);
-    }
-    fb.innerText = msg;
-    fb.style.opacity = '1';
-    fb.style.transform = 'translateY(0)';
+    els.feedbackMsg.innerText = msg;
+    els.feedbackMsg.classList.remove('hidden');
 
-    // アニメーション
-    els.characterBox.style.transform = 'scale(1.1)';
-    setTimeout(() => { els.characterBox.style.transform = 'scale(1)'; }, 150);
-
+    // ちょっと長めに表示
     setTimeout(() => {
-        if (fb) {
-            fb.style.opacity = '0';
-            fb.style.transform = 'translateY(-20px)';
-        }
-    }, 2000);
+        els.feedbackMsg.classList.add('hidden');
+        els.feedbackMsg.innerText = '';
+    }, 2500);
+
+    // キャラクター跳ねる
+    els.characterBox.style.transform = 'scale(1.1) translateY(-10px)';
+    setTimeout(() => { els.characterBox.style.transform = 'scale(1) translateY(0)'; }, 150);
 }
 
-// ------ イベントリスナー ------
+// ------ A・B・C 物理ボタンのイベント入力 ------
+const pressedButtons = new Set();
+let resetTimer = null;
+
 function setupEventListeners() {
-    document.getElementById('btn-reset').addEventListener('click', resetGame);
+    const startResetTimer = () => {
+        if (state.isGameOver || state.day >= 5) {
+            resetTimer = setTimeout(() => {
+                resetGame();
+            }, 1000); // 1秒長押しでリセット
+        }
+    };
+    const clearResetTimer = () => {
+        if (resetTimer) {
+            clearTimeout(resetTimer);
+            resetTimer = null;
+        }
+    };
 
-    // サブメニュー開閉
-    document.getElementById('btn-food').addEventListener('click', () => { els.foodMenu.classList.remove('hidden'); els.discMenu.classList.add('hidden'); });
-    document.getElementById('btn-discipline').addEventListener('click', () => { els.discMenu.classList.remove('hidden'); els.foodMenu.classList.add('hidden'); });
+    const handleDown = (btnId) => {
+        pressedButtons.add(btnId);
+    };
+    const handleUp = (btnId) => { pressedButtons.delete(btnId); };
 
-    document.querySelectorAll('.btn-cancel').forEach(btn => {
-        btn.addEventListener('click', (e) => {
-            e.target.parentElement.classList.add('hidden');
+    // ボタンA (選択/移動)
+    els.btnA.addEventListener('mousedown', () => { handleDown('a'); handleBtnA(); });
+    els.btnA.addEventListener('mouseup', () => handleUp('a'));
+    els.btnA.addEventListener('mouseleave', () => handleUp('a'));
+    els.btnA.addEventListener('touchstart', (e) => { e.preventDefault(); handleDown('a'); handleBtnA(); });
+    els.btnA.addEventListener('touchend', (e) => { e.preventDefault(); handleUp('a'); });
+
+    // ボタンB (決定/時計)
+    els.btnB.addEventListener('mousedown', () => { handleDown('b'); handleBtnB(); });
+    els.btnB.addEventListener('mouseup', () => handleUp('b'));
+    els.btnB.addEventListener('mouseleave', () => handleUp('b'));
+    els.btnB.addEventListener('touchstart', (e) => { e.preventDefault(); handleDown('b'); handleBtnB(); });
+    els.btnB.addEventListener('touchend', (e) => { e.preventDefault(); handleUp('b'); });
+
+    // ボタンC (キャンセル/戻る)
+    els.btnC.addEventListener('mousedown', () => { handleDown('c'); handleBtnC(); startResetTimer(); });
+    els.btnC.addEventListener('mouseup', () => { handleUp('c'); clearResetTimer(); });
+    els.btnC.addEventListener('mouseleave', () => { handleUp('c'); clearResetTimer(); });
+    els.btnC.addEventListener('touchstart', (e) => { e.preventDefault(); handleDown('c'); handleBtnC(); startResetTimer(); });
+    els.btnC.addEventListener('touchend', (e) => { e.preventDefault(); handleUp('c'); clearResetTimer(); });
+
+    // キーボード対応（PCでテストしやすくするため）
+    document.addEventListener('keydown', (e) => {
+        const key = e.key.toLowerCase();
+        if (key === 'a' && !pressedButtons.has('a')) { handleDown('a'); els.btnA.classList.add('active-sim'); handleBtnA(); }
+        if (key === 'b' && !pressedButtons.has('b')) { handleDown('b'); els.btnB.classList.add('active-sim'); handleBtnB(); }
+        if (key === 'c' && !pressedButtons.has('c')) { handleDown('c'); els.btnC.classList.add('active-sim'); handleBtnC(); startResetTimer(); }
+    });
+    document.addEventListener('keyup', (e) => {
+        const key = e.key.toLowerCase();
+        if (key === 'a') { handleUp('a'); els.btnA.classList.remove('active-sim'); }
+        if (key === 'b') { handleUp('b'); els.btnB.classList.remove('active-sim'); }
+        if (key === 'c') { handleUp('c'); els.btnC.classList.remove('active-sim'); clearResetTimer(); }
+    });
+
+    // 外部ボタン: 時間を進める
+    const advBtn = document.getElementById('btn-advance-out');
+    if (advBtn) {
+        advBtn.addEventListener('click', () => {
+            advanceTime();
         });
-    });
+    }
 
-    // 次へ進む
-    document.getElementById('btn-next-time').addEventListener('click', advanceTime);
-
-    // アクションバインディング
-    document.getElementById('btn-food-onigiri').addEventListener('click', feedOnigiri);
-    document.getElementById('btn-food-choco').addEventListener('click', feedChoco);
-    document.getElementById('btn-play').addEventListener('click', playMinigame);
-    document.getElementById('btn-toilet').addEventListener('click', useToilet);
-    document.getElementById('btn-sick').addEventListener('click', treatSick);
-    document.getElementById('btn-black').addEventListener('click', useBlack);
-    document.getElementById('btn-lights').addEventListener('click', toggleLights);
-    document.getElementById('btn-disc-scold').addEventListener('click', scold);
-    document.getElementById('btn-disc-praise').addEventListener('click', praise);
-
-    // 図鑑
-    document.getElementById('btn-encyclopedia').addEventListener('click', () => {
-        renderEncyclopedia();
-        els.encycModal.classList.remove('hidden');
-    });
+    // 外部ボタン: 図鑑
+    const encBtn = document.getElementById('btn-encyclopedia-out');
+    if (encBtn) {
+        encBtn.addEventListener('click', () => {
+            renderEncyclopedia();
+            document.getElementById('encyclopedia-modal').classList.remove('hidden');
+        });
+    }
     document.getElementById('btn-close-encyclopedia').addEventListener('click', () => {
-        els.encycModal.classList.add('hidden');
+        document.getElementById('encyclopedia-modal').classList.add('hidden');
     });
+}
+
+function handleBtnA() {
+    if (state.isGameOver) return;
+
+    if (state.subScreen === null || state.subScreen === 'stats' || state.subScreen === 'clock') {
+        // メイン画面でのカーソル移動（0〜7）。全8アイコン選択可能
+        state.subScreen = null; // サブ画面開いてたら閉じてカーソル操作に戻る
+        state.cursorIndex = (state.cursorIndex + 1) % 8;
+    } else if (state.subScreen === 'submenu') {
+        // サブメニュー内での選択肢移動
+        state.submenuIndex = (state.submenuIndex + 1) % currentSubmenuOptions.length;
+    }
+    updateUI();
+}
+
+function handleBtnB() {
+    if (state.isGameOver) return;
+
+    if (state.subScreen === 'clock') {
+        // 時計画面でB = 時計を閉じて戻るのみ（時間は進めない）
+        state.subScreen = null;
+        state.cursorIndex = -1;
+    } else if (state.subScreen === 'minigame') {
+        stopMinigame();
+    } else if (state.subScreen === 'submenu') {
+        // サブメニュー実行
+        const option = currentSubmenuOptions[state.submenuIndex];
+        if (option && option.action) {
+            option.action();
+        }
+        state.subScreen = null;
+        state.cursorIndex = -1;
+    } else if (state.cursorIndex === -1) {
+        // カーソル未選択でB = 時計画面（次へ進む用）
+        state.subScreen = 'clock';
+    } else {
+        // アイコン選択中のB = そのアイコンのアクションを実行
+        executeIconAction(state.cursorIndex);
+    }
+    updateUI();
+}
+
+function handleBtnC() {
+    // 戻る / カーソル消去
+    state.subScreen = null;
+    state.cursorIndex = -1;
+    currentSubmenuOptions = [];
+    updateUI();
+}
+
+function openSubmenu(title, options) {
+    els.submenuTitle.innerText = title;
+    currentSubmenuOptions = options;
+    state.submenuIndex = 0;
+    state.subScreen = 'submenu';
+}
+
+function executeIconAction(index) {
+    switch (index) {
+        case 0: // ごはん
+            openSubmenu("🍽️", [
+                { label: "🍙", action: feedOnigiri },
+                { label: "🍫", action: feedChoco }
+            ]);
+            break;
+        case 1: // 電気
+            toggleLights();
+            state.cursorIndex = -1;
+            break;
+        case 2: // あそぶ
+            playMinigame();
+            state.cursorIndex = -1;
+            break;
+        case 3: // 病気・注射
+            treatSick();
+            state.cursorIndex = -1;
+            break;
+        case 4: // トイレ
+            useToilet();
+            state.cursorIndex = -1;
+            break;
+        case 5: // ステータス
+            state.subScreen = 'stats';
+            break;
+        case 6: // しつけ
+            openSubmenu("💢", [
+                { label: "💢", action: scold },
+                { label: "👏", action: praise }
+            ]);
+            break;
+        case 7: // 雷（⚡）
+            handleThunder();
+            state.cursorIndex = -1;
+            break;
+    }
 }
 
 // ------ アクションロジック ------
+function consumeAction() {
+    if (state.actionsLeft <= 0) {
+        showFeedback("⚠️ ⏩!");
+        return false;
+    }
+    state.actionsLeft--;
+    return true;
+}
+
 function updateStat(key, change, min = 0, max = 5) {
     state[key] += change;
     if (state[key] > max) state[key] = max;
@@ -232,127 +455,236 @@ function updateStat(key, change, min = 0, max = 5) {
 }
 
 function feedOnigiri() {
-    els.foodMenu.classList.add('hidden');
     if (state.isGameOver || state.form === FORMS.BABY) return;
+    if (!consumeAction()) return;
     if (state.hunger >= 5) {
-        showFeedback("お腹いっぱいみたい...");
+        showFeedback("😑");
         state.isDemanding = true;
     } else {
         updateStat('hunger', 1);
         state.stats.onigiriCount++;
-        showFeedback("🍙 もぐもぐ...");
+        showFeedback("😋");
     }
-    updateUI(); saveState();
+    saveState();
 }
 
 function feedChoco() {
-    els.foodMenu.classList.add('hidden');
     if (state.isGameOver || state.form === FORMS.BABY) return;
+    if (!consumeAction()) return;
     if (state.hunger >= 5 && state.mood >= 5) {
-        showFeedback("もういらないみたい...");
+        showFeedback("😑");
         state.isDemanding = true;
     } else {
         updateStat('hunger', 1);
         updateStat('mood', 1);
         state.stats.chocoCount++;
-        showFeedback("🍫 うれしそう！");
+        showFeedback("😋");
     }
-    updateUI(); saveState();
+    saveState();
 }
+
+let minigameInterval = null;
+const slotSymbols = ["🔥", "💀", "🔪", "😆"];
 
 function playMinigame() {
     if (state.isGameOver || state.form === FORMS.BABY) return;
+    if (!consumeAction()) return;
     if (state.mood >= 5) {
-        showFeedback("今は遊びたくないみたい...");
+        showFeedback("😑");
         state.isDemanding = true;
-    } else {
-        updateStat('mood', 2);
-        updateStat('hunger', -1); // 遊ぶと少しお腹が減る
-        state.stats.playCount++;
-        showFeedback("📺 動画撮影成功！機嫌アップ！");
+        saveState();
+        return;
     }
-    updateUI(); saveState();
+
+    state.subScreen = 'minigame';
+    state.cursorIndex = -1;
+    updateUI();
+
+    minigameInterval = setInterval(() => {
+        document.getElementById('slot-1').innerText = slotSymbols[Math.floor(Math.random() * slotSymbols.length)];
+        document.getElementById('slot-2').innerText = slotSymbols[Math.floor(Math.random() * slotSymbols.length)];
+        document.getElementById('slot-3').innerText = slotSymbols[Math.floor(Math.random() * slotSymbols.length)];
+    }, 100);
+}
+
+function stopMinigame() {
+    clearInterval(minigameInterval);
+    const resultSymbol = document.getElementById('slot-1').innerText;
+    document.getElementById('slot-2').innerText = resultSymbol;
+    document.getElementById('slot-3').innerText = resultSymbol;
+
+    setTimeout(() => {
+        state.subScreen = null;
+        state.stats.playCount++;
+        updateStat('hunger', -1);
+
+        if (resultSymbol === "😆") {
+            updateStat('mood', 2);
+            showFeedback("😆");
+        } else {
+            // 失敗（炎上など）
+            state.stats.minigameFailures = (state.stats.minigameFailures || 0) + 1;
+            updateStat('mood', -2, 0, 5);
+            showFeedback("😨");
+        }
+        updateUI();
+        saveState();
+    }, 1500);
 }
 
 function useToilet() {
-    if (state.isGameOver) return;
+    if (state.isGameOver || state.form === FORMS.BABY) return;
+    if (!consumeAction()) return;
     if (state.poopCount > 0) {
+        // 現在のうんちを複製して残し、波に流されるようにする
+        const fakePoops = els.poopContainer.cloneNode(true);
+        fakePoops.id = 'fake-poops';
+        els.mainDisplay.appendChild(fakePoops);
+
         state.poopCount = 0;
-        showFeedback("🚽 スッキリした！");
+        saveState();
+
+        // 波のアニメーション要素
+        const wave = document.createElement('div');
+        wave.id = 'water-wave';
+        els.mainDisplay.appendChild(wave);
+
+        // タイミングを合わせてフェイクうんちを消す
+        setTimeout(() => {
+            if (fakePoops) fakePoops.remove();
+            showFeedback("☺️");
+        }, 800);
+
+        // アニメーション終了後に波要素自体を削除
+        setTimeout(() => {
+            if (wave) wave.remove();
+        }, 1500);
+
     } else {
-        showFeedback("今は出ないみたい...");
+        showFeedback("❓️");
+        saveState();
     }
-    updateUI(); saveState();
 }
 
 function treatSick() {
-    if (state.isGameOver) return;
+    if (state.isGameOver || state.form === FORMS.BABY) return;
+    if (!consumeAction()) return;
     if (state.isSick) {
         state.isSick = false;
         state.stats.sickIgnoredCount = 0;
-        state.isAppealing = true; // 治療後に「褒める」チャンスを残す
-        showFeedback("💉 注射チックン！治った！褒めてあげよう！");
+        state.isAppealing = true; // 治療後にアピール状態になる
+        showFeedback("☺️");
     } else {
-        showFeedback("病気じゃないよ");
+        showFeedback("❓️");
         state.careMistakes++;
     }
-    updateUI(); saveState();
+    saveState();
 }
 
 function useBlack() {
-    if (state.isGameOver) return;
+    if (state.isGameOver || state.form === FORMS.BABY) return;
+    if (!consumeAction()) return;
     if (state.enemyPresent) {
         state.enemyPresent = false;
         state.stats.blackCount++;
-        state.isAppealing = true; // 撃退後に「褒める」チャンスを残す
-        showFeedback("⚡ デビルサンダー！アキラを撃退した！褒めてあげよう！");
+        state.isAppealing = true; // 撃退後にアピール状態になる
+        showFeedback("😆");
     } else {
-        showFeedback("誰もいないのに...さとしが怯えている");
+        showFeedback("❓️");
         state.careMistakes++;
         updateStat('trust', -1, -5, 10);
     }
-    updateUI(); saveState();
+    saveState();
+}
+
+// ------ 雷ボタン（筐体内 ⚡ アイコン） ------
+function handleThunder() {
+    if (state.isGameOver || state.form === FORMS.BABY) return;
+    // 行動回数を消費しない
+    if (state.enemyPresent) {
+        // アキラがいる → 雷で撃退！
+        state.enemyPresent = false;
+        state.stats.blackCount++;
+        state.isAppealing = true;
+        showThunderFlash();
+        showFeedback("😆");
+    } else {
+        // アキラがいない → ブラックが来て❓を出して帰る
+        showBlackConfused();
+    }
+    updateUI();
+    saveState();
+}
+
+function showThunderFlash() {
+    const flash = document.createElement('div');
+    flash.id = 'thunder-flash';
+    els.mainDisplay.appendChild(flash);
+    setTimeout(() => flash.remove(), 500);
+}
+
+function showBlackConfused() {
+    // ブラック（黒い影）が一瞬現れて❓を出して帰る演出
+    const black = document.createElement('div');
+    black.style.cssText = 'position:absolute;top:10px;left:10px;font-size:2rem;z-index:8;';
+    black.innerText = '😈';
+    els.mainDisplay.appendChild(black);
+
+    setTimeout(() => {
+        black.innerText = '❓';
+        black.style.fontSize = '2.5rem';
+    }, 600);
+
+    setTimeout(() => {
+        black.style.transition = 'opacity 0.3s';
+        black.style.opacity = '0';
+    }, 1200);
+
+    setTimeout(() => {
+        black.remove();
+        showFeedback("❓");
+    }, 1600);
 }
 
 function toggleLights() {
     if (state.isGameOver) return;
     if (state.timeIndex === 5) { // 21:00 のみ点滅可能
         state.lightsOff = !state.lightsOff;
-        showFeedback(state.lightsOff ? "💡 電気を消した。おやすみ..." : "💡 電気を点けた");
+        showFeedback(state.lightsOff ? "😴" : "😶");
     } else {
-        showFeedback("まだ寝る時間じゃないよ");
+        showFeedback("🤔");
     }
-    updateUI(); saveState();
+    saveState();
 }
 
 function scold() {
-    els.discMenu.classList.add('hidden');
-    if (state.isGameOver) return;
+    if (state.isGameOver || state.form === FORMS.BABY) return;
+    if (!consumeAction()) return;
     if (state.isDemanding) {
-        showFeedback("💢 ちゃんと説教した！信頼度アップ！");
+        showFeedback("🥹");
         updateStat('trust', 1, -5, 10);
         state.isDemanding = false;
     } else {
-        showFeedback("なんでもないのに怒られた...信頼度ダウン");
+        showFeedback("😭");
         state.careMistakes++;
         updateStat('trust', -2, -5, 10);
     }
-    updateUI(); saveState();
+    saveState();
 }
 
 function praise() {
-    els.discMenu.classList.add('hidden');
-    if (state.isGameOver) return;
+    if (state.isGameOver || state.form === FORMS.BABY) return;
+    if (!consumeAction()) return;
     if (state.isSick || state.enemyPresent || state.isAppealing) {
-        showFeedback("✨ えらいね！信頼度アップ！");
+        showFeedback("😆");
         updateStat('trust', 1, -5, 10);
         state.isAppealing = false;
     } else if (state.isDemanding) {
-        showFeedback("ワガママを褒めちゃダメ！信頼度ダウン");
+        showFeedback("🥺");
         state.careMistakes++;
         updateStat('trust', -1, -5, 10);
     } else {
-        showFeedback("なんでもないのに褒められた...");
+        showFeedback("❓");
         state.careMistakes++;
     }
     updateUI(); saveState();
@@ -394,20 +726,21 @@ function advanceTime() {
     if (state.isSick) {
         state.stats.sickIgnoredCount++;
         if (state.stats.sickIgnoredCount >= 2) {
-            showGameOver("病気を放置しすぎて死んでしまった...");
+            showGameOver("🪦");
             return;
         }
     }
 
     // 死亡判定 (空腹0のままターン進行)
     if (state.hunger <= 0) {
-        showGameOver("空腹で死んでしまった...");
+        showGameOver("🪦");
         return;
     }
 
     // 時間と日数の進行
     state.timeIndex++;
     state.isDemanding = false;
+    state.actionsLeft = 3; // 行動回数をリセット
 
     if (state.timeIndex >= TIME_SESSIONS.length) {
         state.timeIndex = 0;
@@ -424,34 +757,38 @@ function advanceTime() {
         if ((state.hunger >= 4 || state.mood >= 4) && Math.random() < 0.4) {
             state.isDemanding = true;
             const msgs = [
-                "🍚 お腹すいた〜と言っているが…さっき食べたばかりだぞ？",
-                "📺 遊んで遊んで〜！と言っているが…さっき遊んだだろ？",
-                "🍫 チョコ！チョコ！とねだっている！",
-                "なんだかワガママを言っているぞ..."
+                "🍙",
+                "📺",
+                "🍫",
+                "😤"
             ];
             showFeedback(msgs[Math.floor(Math.random() * msgs.length)]);
         }
 
-        // ★ 助けてアピール発生（病気・敵関係なく、信頼度を上げるチャンス）=> 「褒める」チャンス
+        // ★ 助けてアピール発生
         if (!state.isDemanding && Math.random() < 0.25) {
             state.isAppealing = true;
             const msgs = [
-                "😢 なんだか寂しそうにしている…褒めてあげよう！",
-                "✨ さとしが何か頑張ったみたい！褒めてあげよう！",
-                "🥺 こっちを見て甘えている…褒めてあげよう！"
+                "😢",
+                "💪",
+                "🥺"
             ];
             showFeedback(msgs[Math.floor(Math.random() * msgs.length)]);
         }
 
         // ランダムイベント
+        let eventTriggered = false;
         if (Math.random() < 0.25 && state.poopCount < 4) state.poopCount++;
-        if (Math.random() < 0.2 && !state.isSick) {
+        if (Math.random() < 0.2 && !state.isSick && !state.enemyPresent) {
             state.isSick = true;
-            showFeedback("🏥 具合が悪そう...助けを求めている！");
+            eventTriggered = true;
+            showFeedback("🤒");
         }
-        if (Math.random() < 0.15 && !state.enemyPresent && state.day >= 2) {
+        // 病気が発生しなかった場合のみ、アキラの襲来を判定（同時発生を防ぐ）
+        // テストしやすいように出現率を上げ、1日目から出現可能にする
+        if (!eventTriggered && Math.random() < 0.4 && !state.enemyPresent && !state.isSick && state.day >= 1) {
             state.enemyPresent = true;
-            showFeedback("😈 アキラが来た！助けを求めている！");
+            showFeedback("😨");
         }
     }
 
@@ -462,98 +799,44 @@ function advanceTime() {
 function checkEvolution() {
     if (state.day === 1) {
         state.form = FORMS.MARU;
-        showFeedback("まるさとしに進化した！");
+        showFeedback("✨");
     } else if (state.day === 2) {
         state.form = FORMS.TAMA;
-        showFeedback("たまさとしに進化した！");
+        showFeedback("✨");
     } else if (state.day === 5) {
         // ★ 最終進化判定（信頼度も全ルートに関与）
         let nextForm = FORMS.NORMAL;
 
-        if (state.careMistakes === 0 && state.stats.playCount === 0 && state.stats.chocoCount === 0 && state.trust >= 2) {
-            // 反転さとし: ミス0、遊び・チョコ未使用、信頼度2以上（ストイック）
+        // 反転さとし：信頼度0 ＋ お世話ミス0 ＋ 🍙のみ与える
+        if (state.trust === 0 && state.careMistakes === 0 && state.stats.onigiriCount > 0 && state.stats.chocoCount === 0) {
             nextForm = FORMS.REVERSE;
-        } else if (state.careMistakes === 0 && state.stats.playCount >= 3 && state.stats.chocoCount >= 3 && state.trust >= 3) {
-            // レジェンドYoutuber: ミス0、遊び・チョコ積極活用、信頼度高
+        }
+        // レジェンドYoutuber：信頼度高い(5以上) ＋ Youtube（ミニゲーム）失敗0(プレイ数1回以上) ＋ お世話ミス0
+        else if (state.trust >= 5 && state.stats.playCount > 0 && (!state.stats.minigameFailures || state.stats.minigameFailures === 0) && state.careMistakes === 0) {
             nextForm = FORMS.LEGEND;
-        } else if (state.stats.onigiriCount === 0 && state.stats.chocoCount > 0 && state.trust >= 4) {
-            // アイドルさとし: チョコのみ、信頼度高
+        }
+        // アイドルさとし：信頼度が高い(5以上) ＋ チョコのみ
+        else if (state.trust >= 5 && state.stats.chocoCount > 0 && state.stats.onigiriCount === 0) {
             nextForm = FORMS.IDOL;
-        } else if (state.stats.blackCount >= 1 && state.trust >= 2) {
-            // 普通のさとし: ブラック使用、信頼度まぁまぁ
+        }
+        // 普通のさとし： ブラック😈を1回以上呼ぶ
+        else if (state.stats.blackCount >= 1) {
             nextForm = FORMS.NORMAL;
-        } else if (state.stats.playCount === 0 && state.stats.blackCount === 0 && state.trust < 2) {
-            // サラリーマンさとし: 遊び・ブラック未使用、信頼度低め
+        }
+        // サラリーマンさとし：ブラック😈未使用
+        else if (state.stats.blackCount === 0) {
             nextForm = FORMS.SALARYMAN;
-        } else if (state.trust >= 3) {
-            nextForm = FORMS.NORMAL;
-        } else {
-            nextForm = FORMS.SALARYMAN; // 信頼度が低いとサラリーマン
         }
 
         state.form = nextForm;
-        showFeedback(`進化！！「${getFormName(nextForm)}」になった！`);
+        showFeedback(`✨ → ${getFormName(nextForm)}!`);
         unlockEncyclopedia(nextForm);
 
-        showEvolutionResetButton();
+        showFeedback(`✨${getFormName(nextForm)} C長押しﾘｾｯﾄ`);
     }
 }
 
-function showEvolutionResetButton() {
-    let btn = document.getElementById('btn-evolve-reset');
-    if (!btn) {
-        btn = document.createElement('button');
-        btn.id = 'btn-evolve-reset';
-        btn.innerText = '🥚 新しい卵から育てる';
-        btn.style.cssText = `
-            position: absolute; bottom: 15px; right: 10px;
-            padding: 10px 16px; background: linear-gradient(135deg, #ff6b6b, #ee5a24);
-            color: #fff; border: 2px solid #fff; border-radius: 12px;
-            font-family: var(--font-pixel); font-size: 0.85rem;
-            z-index: 40; cursor: pointer;
-            box-shadow: 0 4px 10px rgba(0,0,0,0.3);
-        `;
-        btn.addEventListener('click', () => {
-            // confirm()の代わりにカスタム確認UIを表示
-            showResetConfirm();
-        });
-        document.getElementById('game-screen').appendChild(btn);
-    }
-}
-
-function showResetConfirm() {
-    let overlay = document.getElementById('reset-confirm-overlay');
-    if (overlay) overlay.remove();
-
-    overlay = document.createElement('div');
-    overlay.id = 'reset-confirm-overlay';
-    overlay.style.cssText = `
-        position: absolute; top: 0; left: 0; width: 100%; height: 100%;
-        background: rgba(0,0,0,0.7); z-index: 50;
-        display: flex; flex-direction: column; justify-content: center; align-items: center;
-        text-align: center; color: white; padding: 20px;
-    `;
-    overlay.innerHTML = `
-        <div style="background: #333; padding: 25px; border-radius: 16px; max-width: 85%;">
-            <p style="font-size: 1.1rem; margin-bottom: 20px;">今のさとしとお別れして、<br>新しい卵から育てますか？</p>
-            <div style="display: flex; gap: 15px; justify-content: center;">
-                <button id="confirm-reset-yes" style="padding: 12px 25px; background: #ff4444; color: white; border: none; border-radius: 10px; font-size: 1rem; cursor: pointer;">はい</button>
-                <button id="confirm-reset-no" style="padding: 12px 25px; background: #666; color: white; border: none; border-radius: 10px; font-size: 1rem; cursor: pointer;">いいえ</button>
-            </div>
-        </div>
-    `;
-    document.getElementById('game-screen').appendChild(overlay);
-
-    document.getElementById('confirm-reset-yes').addEventListener('click', () => {
-        overlay.remove();
-        const evolBtn = document.getElementById('btn-evolve-reset');
-        if (evolBtn) evolBtn.remove();
-        resetGame();
-    });
-    document.getElementById('confirm-reset-no').addEventListener('click', () => {
-        overlay.remove();
-    });
-}
+// Evolution Reset GUI removed, replaced by C button physical long press detection
 
 function getFormName(formId) {
     const names = {
@@ -571,7 +854,7 @@ function unlockEncyclopedia(form) {
     if (!unlocked.includes(form)) {
         unlocked.push(form);
         localStorage.setItem('satoshi_encyclopedia', JSON.stringify(unlocked));
-        setTimeout(() => showFeedback("図鑑に新しい姿が記録された!!"), 2000);
+        setTimeout(() => showFeedback("📖✨❗"), 2000);
     }
 }
 

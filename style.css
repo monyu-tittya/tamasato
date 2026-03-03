@@ -12,8 +12,10 @@
     box-sizing: border-box;
     margin: 0;
     padding: 0;
-    touch-action: manipulation; /* ダブルタップズーム防止（スマホ最適化） */
-    user-select: none; /* テキスト選択防止 */
+    touch-action: manipulation;
+    /* ダブルタップズーム防止（スマホ最適化） */
+    user-select: none;
+    /* テキスト選択防止 */
 }
 
 body {
@@ -24,303 +26,764 @@ body {
     justify-content: center;
     align-items: center;
     min-height: 100vh;
-    overflow: hidden; /* スクロール防止 */
+    overflow: hidden;
+    /* スクロール防止 */
 }
 
-/* スマホ最適化、PCではスマホサイズに制限 */
+/* たまごっち本体（デバイス）枠 */
 #game-container {
     width: 100%;
-    max-width: 430px; /* iPhone Pro Max程度の幅 */
-    height: 100dvh; /* 動的なビューポート高さ 100% */
-    max-height: 932px;
-    background: #fff;
-    display: flex;
-    flex-direction: column;
-    position: relative;
-    box-shadow: 0 0 30px rgba(0,0,0,0.1);
-}
-
-@media (min-width: 431px) {
-    #game-container {
-        height: 90vh;
-        border-radius: 40px;
-        border: 14px solid #333; /* スマホのベゼルのような枠 */
-    }
-}
-
-/* ヘッダー */
-#game-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 15px 20px;
-    background: rgba(255, 255, 255, 0.85);
-    backdrop-filter: blur(10px);
-    border-bottom: 1px solid rgba(0,0,0,0.1);
-    font-family: var(--font-pixel);
-    font-size: 1.2rem;
-    z-index: 10;
-}
-
-.btn-time {
-    background: #ffcc00;
-    border: 3px solid #b8860b;
-    border-radius: 20px;
-    padding: 8px 16px;
-    font-family: var(--font-pixel);
-    font-weight: bold;
-    color: #333;
-    cursor: pointer;
-    box-shadow: 0 4px 0 #b8860b;
-    transition: all 0.1s;
-}
-
-.btn-time:active {
-    transform: translateY(4px);
-    box-shadow: 0 0px 0 #b8860b;
-}
-
-/* メイン画面（育成部屋） */
-#game-screen {
-    flex: 1;
-    background-color: var(--game-bg-day);
-    position: relative;
+    height: 100dvh;
     display: flex;
     justify-content: center;
     align-items: center;
-    border-bottom: 5px solid #8b4513; /* 床との境界 */
-    transition: background-color 1s ease;
+    transition: background-color 0.8s ease;
+    position: relative;
+}
+
+/* 時間帯による背景色 */
+#game-container.time-morning {
+    background: linear-gradient(180deg, #87ceeb 0%, #e0f0ff 100%);
+}
+
+#game-container.time-midday {
+    background: linear-gradient(180deg, #64b5f6 0%, #bbdefb 100%);
+}
+
+#game-container.time-noon {
+    background: linear-gradient(180deg, #42a5f5 0%, #fff9c4 100%);
+}
+
+#game-container.time-afternoon {
+    background: linear-gradient(180deg, #ffcc80 0%, #ffe0b2 100%);
+}
+
+#game-container.time-evening {
+    background: linear-gradient(180deg, #ff8a65 0%, #ffab91 60%, #5c6bc0 100%);
+}
+
+#game-container.time-night {
+    background: linear-gradient(180deg, #1a237e 0%, #283593 50%, #3949ab 100%);
+}
+
+/* 外部時刻表示 */
+#external-time {
+    position: absolute;
+    top: 12px;
+    left: 12px;
+    z-index: 100;
+    background: rgba(255, 255, 255, 0.6);
+    backdrop-filter: blur(6px);
+    border-radius: 12px;
+    padding: 8px 16px;
+    text-align: center;
+    font-family: var(--font-pixel);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+    border: 1px solid rgba(255, 255, 255, 0.5);
+    transition: background 0.5s, color 0.5s;
+}
+
+#ext-day {
+    font-size: 0.85rem;
+    opacity: 0.7;
+}
+
+#ext-time {
+    font-size: 1.4rem;
+    font-weight: bold;
+    letter-spacing: 1px;
+}
+
+#external-stats {
+    position: absolute;
+    top: 90px;
+    left: 12px;
+    z-index: 100;
+    background: rgba(255, 255, 255, 0.6);
+    backdrop-filter: blur(6px);
+    border-radius: 12px;
+    padding: 8px 16px;
+    text-align: left;
+    font-family: var(--font-pixel);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+    border: 1px solid rgba(255, 255, 255, 0.5);
+    transition: background 0.5s, color 0.5s;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    font-size: 1.1rem;
+    font-weight: bold;
+}
+
+/* 夜は白文字 */
+#game-container.time-night #external-time {
+    background: rgba(0, 0, 0, 0.4);
+    color: #fff;
+    border-color: rgba(255, 255, 255, 0.2);
+}
+
+#game-container.time-evening #external-time {
+    background: rgba(255, 255, 255, 0.4);
+}
+
+#tamagotchi-device {
+    width: 340px;
+    height: 480px;
+    background: radial-gradient(circle at 30% 30%, #ff9e9e, #d84545);
+    border-radius: 45% 45% 50% 50% / 60% 60% 40% 40%;
+    box-shadow: inset -10px -20px 20px rgba(0, 0, 0, 0.2),
+        10px 20px 30px rgba(0, 0, 0, 0.3);
+    border: 3px solid #b83030;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 30px 20px;
+    position: relative;
+}
+
+/* メーカーロゴ風 */
+.device-logo {
+    font-family: 'Helvetica Black', Arial, sans-serif;
+    font-weight: bold;
+    font-size: 1.2rem;
+    color: #ffd700;
+    text-shadow: 1px 1px 0 #b30000;
+    margin-bottom: 20px;
+    letter-spacing: 2px;
+}
+
+/* 液晶画面（LCD）枠 */
+#lcd-screen {
+    width: 220px;
+    height: 220px;
+    background-color: #8fb488;
+    /* 液晶の緑っぽさ */
+    border: 15px solid #eaeaea;
+    /* 画面ベゼル */
+    border-radius: 20px;
+    box-shadow: inset 0 3px 10px rgba(0, 0, 0, 0.4),
+        0 5px 10px rgba(0, 0, 0, 0.2);
+    display: flex;
+    flex-direction: column;
+    padding: 5px;
+    position: relative;
     overflow: hidden;
 }
 
-#room-background {
-    position: absolute;
-    bottom: 0;
-    width: 100%;
-    height: 40%;
-    background: #eebd71; /* フローリング・床 */
-    border-top: 2px solid #cd853f;
-    z-index: 1;
-}
-
-/* キャラクター（さとし） */
-#character {
-    width: 140px;
-    height: 140px;
-    background: rgba(255, 255, 255, 0.9);
-    border: 4px solid #333;
-    border-radius: 50%; /* 仮の丸いキャラクター */
+/* アイコン列 */
+.icon-row {
     display: flex;
-    justify-content: center;
-    align-items: center;
-    font-size: 4rem;
-    box-shadow: 0 10px 15px rgba(0,0,0,0.2);
-    animation: idleBounce 2s infinite ease-in-out;
-    z-index: 5;
-    position: relative;
+    justify-content: space-between;
+    height: 25px;
+    padding: 0 5px;
 }
 
-@keyframes idleBounce {
-    0%, 100% { transform: translateY(0); }
-    50% { transform: translateY(-10px); }
-}
-
-/* インジケーター・オーバーレイ系 */
-#sick-indicator, #enemy-indicator {
-    position: absolute;
-    top: 20px;
-    font-family: var(--font-pixel);
-    font-size: 1.5rem;
-    background: rgba(255,255,255,0.8);
-    padding: 5px 15px;
-    border-radius: 20px;
-    border: 2px solid #ff6347;
-    z-index: 6;
-    animation: flash 1s infinite alternate;
-}
-#enemy-indicator { border-color: #8b008b; color: #8b008b; top: 70px; }
-
-@keyframes flash {
-    0% { opacity: 1; transform: scale(1); }
-    100% { opacity: 0.8; transform: scale(1.05); }
-}
-
-#poop-container {
-    position: absolute;
-    bottom: 20px;
-    left: 20px;
-    font-size: 2.5rem;
-    z-index: 4;
-    display: flex;
-    gap: 5px;
-}
-
-#lights-overlay {
-    position: absolute;
-    top: 0; left: 0; width: 100%; height: 100%;
-    background: rgba(0, 0, 30, 0.85);
-    z-index: 20;
-    pointer-events: none;
-    transition: opacity 1s;
-}
-
-/* ゲームオーバー画面 */
-#game-over-overlay {
-    position: absolute;
-    top:0; left:0; width:100%; height:100%;
-    background: rgba(0,0,0,0.8);
-    color: white;
-    z-index: 30;
-    display: flex;
-    flex-direction: column;
-    justify-content: center;
-    align-items: center;
-    font-family: var(--font-pixel);
-    text-align: center;
-    padding: 20px;
-}
-
-#game-over-overlay h2 { color: #ff4444; font-size: 2.5rem; margin-bottom: 20px; }
-#btn-reset {
-    margin-top: 30px;
-    padding: 15px 30px;
+.icon {
     font-size: 1.2rem;
-    font-family: var(--font-pixel);
-    background: #444;
-    color: white;
-    border: 2px solid #fff;
-    border-radius: 10px;
-    cursor: pointer;
+    opacity: 0.2;
+    /* 非アクティブ時は薄い */
+    filter: grayscale(100%);
+    /* モノクロっぽく */
+    transition: opacity 0.1s;
 }
 
-.hidden { display: none !important; }
+.icon.active {
+    opacity: 1;
+    filter: none;
+    border-bottom: 2px solid #333;
+    /* 選択中であることを示すアンダーライン */
+}
 
-/* ステータスバー (デバッグ用) */
-#status-bar {
+.icon.unselectable.active {
+    animation: blinkIconFast 0.2s infinite alternate;
+}
+
+@keyframes blinkIcon {
+    from {
+        opacity: 1;
+    }
+
+    to {
+        opacity: 0;
+    }
+}
+
+@keyframes blinkIconFast {
+    from {
+        opacity: 1;
+        color: red;
+    }
+
+    to {
+        opacity: 0.2;
+        color: inherit;
+    }
+}
+
+/* メイン表示領域（キャラ等） */
+#main-display {
+    flex: 1;
+    position: relative;
     display: flex;
-    justify-content: space-around;
-    padding: 8px;
-    background: #f8f9fa;
-    font-size: 0.75rem;
-    font-family: var(--font-pixel);
-    border-bottom: 1px solid #dee2e6;
-    color: #888;
-}
-
-/* アクションメニュー (4列x2行のグリッド) */
-#action-menu {
-    display: grid;
-    grid-template-columns: repeat(4, 1fr);
-    grid-gap: 10px;
-    padding: 20px 15px;
-    background: #fff;
-    z-index: 10;
-}
-
-.action-btn {
-    background: #fdfdfd;
-    border: 2px solid #e9ecef;
-    border-radius: 16px;
-    padding: 12px 5px;
-    font-size: 0.8rem;
-    font-weight: bold;
-    color: #495057;
-    cursor: pointer;
-    display: flex;
-    flex-direction: column;
+    justify-content: center;
     align-items: center;
-    transition: transform 0.1s, background 0.1s;
-    box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+    font-family: var(--font-pixel);
+    color: #333;
+    image-rendering: pixelated;
+    /* ドット絵感を出す */
 }
 
-.action-btn span { font-size: 1.5rem; margin-bottom: 4px; }
-.action-btn:active { transform: scale(0.92); }
-
-/* サブメニュー */
-.sub-menu {
+/* 部屋の背景（線画っぽくする） */
+#room-background {
     position: absolute;
     bottom: 0;
     left: 0;
     width: 100%;
-    background: rgba(255,255,255,0.95);
-    backdrop-filter: blur(10px);
-    padding: 20px;
-    display: flex;
-    justify-content: space-around;
-    border-top: 2px solid #ddd;
-    z-index: 15;
-    box-shadow: 0 -5px 20px rgba(0,0,0,0.1);
-    border-radius: 20px 20px 0 0;
+    height: 30%;
+    border-top: 1px solid rgba(0, 0, 0, 0.4);
+    background: repeating-linear-gradient(45deg,
+            transparent,
+            transparent 5px,
+            rgba(0, 0, 0, 0.05) 5px,
+            rgba(0, 0, 0, 0.05) 10px);
+    z-index: 1;
 }
 
-.sub-btn, .btn-cancel {
-    padding: 15px 20px;
-    border-radius: 12px;
-    border: none;
-    font-weight: bold;
-    font-size: 1rem;
-    cursor: pointer;
-    box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+/* キャラクター */
+#character {
+    font-size: 3.5rem;
+    z-index: 5;
+    animation: idleBounce 2s infinite steps(2);
 }
 
-.sub-btn { background: #ffebcd; color: #8b4513; }
-.btn-cancel { background: #e0e0e0; color: #333; }
-.sub-btn:active, .btn-cancel:active { transform: scale(0.95); box-shadow: 0 2px 2px rgba(0,0,0,0.1); }
+@keyframes idleBounce {
 
-/* 図鑑モーダル */
-.modal {
+    0%,
+    100% {
+        transform: translateY(0);
+    }
+
+    50% {
+        transform: translateY(-4px);
+    }
+}
+
+/* ウンチなど */
+#poop-container {
     position: absolute;
-    top:0; left:0; width:100%; height:100%;
-    background: rgba(0,0,0,0.6);
+    bottom: 25px;
+    left: 45%;
+    /* キャラクターの少し右~中央付近 */
+    font-size: 1.5rem;
+    z-index: 4;
+    display: flex;
+    gap: 2px;
+}
+
+#fake-poops {
+    position: absolute;
+    bottom: 25px;
+    left: 45%;
+    font-size: 1.5rem;
+    z-index: 4;
+    display: flex;
+    gap: 2px;
+    animation: slidePoop 1.5s cubic-bezier(0.2, 0, 0.2, 1) forwards;
+}
+
+@keyframes slidePoop {
+
+    0%,
+    30% {
+        transform: translateX(0);
+        opacity: 1;
+    }
+
+    40% {
+        transform: translateX(-20px);
+        opacity: 0.9;
+    }
+
+    80% {
+        transform: translateX(-100px);
+        opacity: 0;
+    }
+
+    100% {
+        transform: translateX(-150px);
+        opacity: 0;
+    }
+}
+
+#sick-indicator {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    font-size: 2rem;
+    z-index: 6;
+    animation: floatSlow 1s infinite alternate;
+}
+
+#enemy-indicator {
+    position: absolute;
+    top: 10px;
+    left: 10px;
+    font-size: 2rem;
+    z-index: 6;
+    animation: floatFast 0.5s infinite alternate;
+}
+
+@keyframes floatSlow {
+    from {
+        transform: translateY(0);
+    }
+
+    to {
+        transform: translateY(-5px);
+    }
+}
+
+@keyframes floatFast {
+    from {
+        transform: translateY(0);
+    }
+
+    to {
+        transform: translateY(-8px);
+    }
+}
+
+/* トイレの水流アニメーション */
+#water-wave {
+    position: absolute;
+    top: 0;
+    right: -100%;
+    /* 初期位置：右の外側 */
+    width: 200%;
+    height: 100%;
+    /* 波のグラデーション */
+    background: linear-gradient(to right, transparent 0%, rgba(0, 150, 255, 0.6) 20%, rgba(0, 100, 255, 0.9) 100%);
+    z-index: 15;
+    /* キャラより上、UI等の下 */
+    animation: flushWave 1.5s ease-in-out forwards;
+}
+
+@keyframes flushWave {
+    0% {
+        right: -200%;
+    }
+
+    100% {
+        right: 100%;
+    }
+}
+
+/* エフェクトやメッセージ・全画面覆う系 */
+#lights-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 20, 10, 0.85);
+    z-index: 10;
+}
+
+#feedback-msg {
+    position: absolute;
+    top: 8px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: auto;
+    min-width: 50px;
+    max-width: 85%;
+    background: #fff;
+    border: 3px solid #333;
+    padding: 6px 10px;
+    font-size: 1.1rem;
+    text-align: center;
+    z-index: 20;
+    border-radius: 12px;
+    box-shadow: 2px 2px 0 rgba(0, 0, 0, 0.15);
+}
+
+/* 吹き出しのしっぽ（三角形） */
+#feedback-msg::after {
+    content: '';
+    position: absolute;
+    bottom: -12px;
+    left: 20px;
+    width: 0;
+    height: 0;
+    border-left: 10px solid transparent;
+    border-right: 4px solid transparent;
+    border-top: 12px solid #333;
+}
+
+#feedback-msg::before {
+    content: '';
+    position: absolute;
+    bottom: -8px;
+    left: 22px;
+    width: 0;
+    height: 0;
+    border-left: 7px solid transparent;
+    border-right: 3px solid transparent;
+    border-top: 9px solid #fff;
+    z-index: 1;
+}
+
+/* 死亡時の👻浮遊アニメーション */
+#ghost-float {
+    position: absolute;
+    top: 5px;
+    right: 15px;
+    font-size: 2.2rem;
+    z-index: 16;
+    animation: ghostFloat 2s ease-in-out infinite alternate;
+    opacity: 0.85;
+}
+
+@keyframes ghostFloat {
+    0% {
+        transform: translateY(0) rotate(-5deg);
+        opacity: 0.85;
+    }
+
+    50% {
+        opacity: 0.5;
+    }
+
+    100% {
+        transform: translateY(-15px) rotate(5deg);
+        opacity: 0.85;
+    }
+}
+
+/* サブスクリーン（時計、ステータス、メニュー） */
+.sub-screen {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: #8fb488;
+    z-index: 15;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    padding: 10px;
+    text-align: left;
+    font-size: 1rem;
+}
+
+/* ミニゲーム画面（スロット） */
+#minigame-screen {
+    justify-content: center;
+    gap: 15px;
+}
+
+#slot-machine {
+    display: flex;
+    gap: 8px;
+    background: #e0e0e0;
+    padding: 8px;
+    border-radius: 6px;
+    border: 2px solid #555;
+    box-shadow: inset 0 2px 5px rgba(0, 0, 0, 0.5);
+}
+
+.slot {
+    font-size: 2.2rem;
+    width: 40px;
+    height: 44px;
     display: flex;
     justify-content: center;
     align-items: center;
+    background: #fff;
+    border: 1px solid #999;
+}
+
+/* 時計画面 */
+#clock-screen {
+    font-size: 1.2rem;
+}
+
+#time-display {
+    margin: 10px 0;
+    font-size: 1.5rem;
+    font-weight: bold;
+}
+
+/* メニュー画面 */
+#submenu-options {
+    width: 100%;
+    margin-top: 10px;
+}
+
+.menu-option {
+    padding: 5px;
+    margin: 2px 0;
+    width: 100%;
+    font-size: 0.9rem;
+}
+
+.menu-option.selected {
+    background: #333;
+    color: #8fb488;
+    /* 反転色で選択状態を示す */
+}
+
+/* 点滅テキスト */
+.blink-text {
+    font-size: 0.8rem;
+    animation: blinkText 1s infinite steps(2);
+    margin-top: 15px;
+}
+
+@keyframes blinkText {
+    0% {
+        opacity: 1;
+    }
+
+    50% {
+        opacity: 0;
+    }
+}
+
+.hidden {
+    display: none !important;
+}
+
+/* 物理ボタン部分 */
+#hardware-buttons {
+    display: flex;
+    justify-content: space-between;
+    width: 200px;
+    margin-top: 30px;
+}
+
+.hw-btn-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 5px;
+}
+
+.btn-b-container {
+    margin-top: 25px;
+    /* Bボタンは少し下にする */
+}
+
+.hw-btn {
+    width: 45px;
+    height: 45px;
+    border: none;
+    cursor: pointer;
+    transition: transform 0.1s, box-shadow 0.1s, filter 0.1s;
+    outline: none;
+    -webkit-tap-highlight-color: transparent;
+}
+
+#btn-a {
+    width: 0;
+    height: 0;
+    border-top: 22px solid transparent;
+    border-bottom: 22px solid transparent;
+    border-left: 36px solid #d84545;
+    background: transparent;
+    border-radius: 0;
+    filter: drop-shadow(0px 6px 0px #7a0000) drop-shadow(0px 4px 4px rgba(0, 0, 0, 0.3));
+    box-shadow: none;
+}
+
+#btn-a:active,
+#btn-a.active-sim {
+    transform: translateY(4px);
+    filter: drop-shadow(0px 2px 0px #7a0000) drop-shadow(0px 4px 4px rgba(0, 0, 0, 0.3));
+    box-shadow: none;
+}
+
+#btn-b {
+    border-radius: 50%;
+    background: radial-gradient(circle at 30% 30%, #ffffff, #d4d4d4);
+    box-shadow: 0 6px 0 #999999, 0 10px 10px rgba(0, 0, 0, 0.3);
+}
+
+#btn-b:active,
+#btn-b.active-sim {
+    transform: translateY(4px);
+    box-shadow: 0 2px 0 #999999, 0 5px 5px rgba(0, 0, 0, 0.3);
+}
+
+#btn-c {
+    border-radius: 50%;
+    background: radial-gradient(circle at 30% 30%, #ffffaa, #d4a000);
+    box-shadow: 0 6px 0 #997700, 0 10px 10px rgba(0, 0, 0, 0.3);
+}
+
+#btn-c:active,
+#btn-c.active-sim {
+    transform: translateY(4px);
+    box-shadow: 0 2px 0 #997700, 0 5px 5px rgba(0, 0, 0, 0.3);
+}
+
+.btn-label {
+    font-family: Arial, sans-serif;
+    font-weight: bold;
+    font-size: 0.9rem;
+    color: #444;
+    opacity: 0.6;
+}
+
+/* 図鑑モーダル（オプション扱い） */
+.modal {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.8);
     z-index: 100;
-    backdrop-filter: blur(3px);
+    display: flex;
+    justify-content: center;
+    align-items: center;
 }
 
 .modal-content {
-    background: white;
+    background: #fff;
     width: 90%;
     max-height: 85%;
-    border-radius: 24px;
-    padding: 25px;
-    position: relative;
+    border-radius: 10px;
+    padding: 20px;
     overflow-y: auto;
-    font-family: var(--font-main);
     text-align: center;
+    position: relative;
+    font-family: var(--font-pixel);
 }
 
 .close-btn {
     position: absolute;
-    top: 15px;
-    right: 20px;
+    top: 10px;
+    right: 15px;
     font-size: 2rem;
-    font-weight: bold;
-    color: #888;
     cursor: pointer;
 }
 
 #encyclopedia-grid {
     display: grid;
     grid-template-columns: repeat(2, 1fr);
-    gap: 15px;
+    gap: 10px;
     margin-top: 20px;
 }
 
 .encyclopedia-item {
-    background: #f8f9fa;
-    border: 2px dashed #ccc;
-    border-radius: 12px;
-    padding: 15px 5px;
-    font-size: 0.9rem;
-    color: #666;
+    border: 1px dashed #ccc;
+    padding: 10px;
+    border-radius: 8px;
+    color: #999;
 }
 
 .encyclopedia-item.unlocked {
     border-style: solid;
-    border-color: #ffd700;
-    background: #fffacd;
+    border-color: #333;
     color: #333;
     font-weight: bold;
+    background: #eee;
+}
+
+/* 外部ボタン群（筐体の外、上部） */
+#external-buttons {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    z-index: 100;
+    display: flex;
+    gap: 8px;
+    flex-direction: column;
+}
+
+.ext-btn {
+    padding: 8px 14px;
+    border-radius: 12px;
+    border: 2px solid #555;
+    font-family: var(--font-pixel);
+    font-size: 0.85rem;
+    cursor: pointer;
+    transition: all 0.15s;
+    box-shadow: 0 3px 6px rgba(0, 0, 0, 0.2);
+}
+
+.ext-btn:active {
+    transform: translateY(2px);
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+}
+
+.ext-btn-advance {
+    background: linear-gradient(135deg, #4fc3f7, #0288d1);
+    color: #fff;
+    border-color: #0277bd;
+}
+
+.ext-btn-advance:hover {
+    background: linear-gradient(135deg, #81d4fa, #039be5);
+}
+
+.ext-btn-encyclopedia {
+    background: linear-gradient(135deg, #aed581, #689f38);
+    color: #fff;
+    border-color: #558b2f;
+}
+
+.ext-btn-encyclopedia:hover {
+    background: linear-gradient(135deg, #c5e1a5, #7cb342);
+}
+
+/* 雷アイコン選択時のアクティブ演出 */
+#icon-thunder.active {
+    animation: blinkThunder 0.3s infinite alternate;
+}
+
+@keyframes blinkThunder {
+    from {
+        opacity: 1;
+        filter: drop-shadow(0 0 4px #ffd700);
+    }
+
+    to {
+        opacity: 0.4;
+        filter: none;
+    }
+}
+
+/* 雷エフェクト（画面フラッシュ） */
+#thunder-flash {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(255, 255, 100, 0.8);
+    z-index: 25;
+    pointer-events: none;
+    animation: thunderFlash 0.4s ease-out forwards;
+}
+
+@keyframes thunderFlash {
+    0% {
+        opacity: 1;
+    }
+
+    30% {
+        opacity: 0.2;
+    }
+
+    50% {
+        opacity: 0.9;
+    }
+
+    100% {
+        opacity: 0;
+    }
 }
