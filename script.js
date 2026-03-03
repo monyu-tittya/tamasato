@@ -175,7 +175,7 @@ function updateUI() {
         currentSubmenuOptions.forEach((opt, idx) => {
             const div = document.createElement('div');
             div.className = 'menu-option' + (idx === state.submenuIndex ? ' selected' : '');
-            div.innerText = (idx === state.submenuIndex ? '▶ ' : '  ') + opt.label;
+            div.innerHTML = (idx === state.submenuIndex ? '▶ ' : '&nbsp;&nbsp;') + opt.label;
             els.submenuOptions.appendChild(div);
         });
     }
@@ -198,7 +198,7 @@ function updateUI() {
 function updateCharacterSprite() {
     // 死亡時はお墓表示
     if (state.isGameOver) {
-        els.charSprite.innerText = '🪦';
+        els.charSprite.innerHTML = '🪦';
         return;
     }
     const sprites = {
@@ -208,10 +208,10 @@ function updateCharacterSprite() {
         [FORMS.REVERSE]: "🙃",
         [FORMS.LEGEND]: "📹",
         [FORMS.IDOL]: "🎤",
-        [FORMS.NORMAL]: "🧑",
+        [FORMS.NORMAL]: "<img src='images/normal-satoshi.png' style='width: 100px; height: 100px; object-fit: contain; image-rendering: pixelated; vertical-align: middle;'>",
         [FORMS.SALARYMAN]: "👔"
     };
-    els.charSprite.innerText = sprites[state.form] || "❓";
+    els.charSprite.innerHTML = sprites[state.form] || "❓";
 }
 
 function updateBackground() {
@@ -392,7 +392,7 @@ function handleBtnC() {
 }
 
 function openSubmenu(title, options) {
-    els.submenuTitle.innerText = title;
+    els.submenuTitle.innerHTML = title;
     currentSubmenuOptions = options;
     state.submenuIndex = 0;
     state.subScreen = 'submenu';
@@ -401,9 +401,9 @@ function openSubmenu(title, options) {
 function executeIconAction(index) {
     switch (index) {
         case 0: // ごはん
-            openSubmenu("🍽️", [
-                { label: "🍙", action: feedOnigiri },
-                { label: "🍫", action: feedChoco }
+            openSubmenu("<img src='images/icon-food.png' style='width: 20px; vertical-align: middle;'>", [
+                { label: "<img src='images/icon-onigiri.png' style='width: 24px; vertical-align: middle;'> おにぎり", action: feedOnigiri },
+                { label: "<img src='images/icon-choco.png' style='width: 24px; vertical-align: middle;'> チョコ", action: feedChoco }
             ]);
             break;
         case 1: // 電気
@@ -426,9 +426,9 @@ function executeIconAction(index) {
             state.subScreen = 'stats';
             break;
         case 6: // しつけ
-            openSubmenu("💢", [
-                { label: "💢", action: scold },
-                { label: "👏", action: praise }
+            openSubmenu("<img src='images/icon-discipline.png' style='width: 20px; vertical-align: middle;'>", [
+                { label: "💢 しかる", action: scold },
+                { label: "👏 ほめる", action: praise }
             ]);
             break;
         case 7: // 雷（⚡）

@@ -185,6 +185,15 @@ body {
     filter: grayscale(100%);
     /* モノクロっぽく */
     transition: opacity 0.1s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.icon img {
+    width: 20px;
+    height: 20px;
+    object-fit: contain;
 }
 
 .icon.active {
