@@ -829,10 +829,10 @@ function checkEvolution() {
         }
 
         state.form = nextForm;
-        showFeedback(`✨ → ${getFormName(nextForm)}!`);
+        showFeedback(`✨`);
         unlockEncyclopedia(nextForm);
 
-        showFeedback(`✨${getFormName(nextForm)} C長押しﾘｾｯﾄ`);
+        showFeedback(`C長押しﾘｾｯﾄ`);
     }
 }
 
@@ -854,7 +854,7 @@ function unlockEncyclopedia(form) {
     if (!unlocked.includes(form)) {
         unlocked.push(form);
         localStorage.setItem('satoshi_encyclopedia', JSON.stringify(unlocked));
-        setTimeout(() => showFeedback("📖✨❗"), 2000);
+        setTimeout(() => showFeedback("📖"), 2000);
     }
 }
 
