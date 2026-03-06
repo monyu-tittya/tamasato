@@ -213,7 +213,12 @@ function updateCharacterSprite() {
         [FORMS.SALARYMAN]: "👔",
         [FORMS.SICK]: "🤒"
     };
-    els.charSprite.innerHTML = sprites[state.form] || "❓";
+
+    // すでに同じ内容がセットされていれば再描画をスキップしてチラつきを防止
+    const newHTML = sprites[state.form] || "❓";
+    if (els.charSprite.innerHTML !== newHTML) {
+        els.charSprite.innerHTML = newHTML;
+    }
 }
 
 function updateBackground() {
@@ -463,7 +468,7 @@ function feedOnigiri() {
         showFeedback("😑");
         state.isDemanding = true;
     } else {
-        updateStat('hunger', 1);
+        updateStat('hunger', 2);
         state.stats.onigiriCount++;
         showFeedback("😋");
     }
@@ -784,10 +789,7 @@ function advanceTime() {
         if ((state.hunger >= 4 || state.mood >= 4) && Math.random() < 0.4) {
             state.isDemanding = true;
             const msgs = [
-                "🍙",
-                "📺",
-                "🍫",
-                "😤"
+                "🥺"
             ];
             showFeedback(msgs[Math.floor(Math.random() * msgs.length)]);
         }
@@ -796,8 +798,6 @@ function advanceTime() {
         if (!state.isDemanding && Math.random() < 0.25) {
             state.isAppealing = true;
             const msgs = [
-                "😢",
-                "💪",
                 "🥺"
             ];
             showFeedback(msgs[Math.floor(Math.random() * msgs.length)]);
