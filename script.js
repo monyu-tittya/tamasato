@@ -7,7 +7,8 @@ const FORMS = {
     LEGEND: "legend",       // レジェンドYoutuber
     IDOL: "idol",           // アイドルさとし
     NORMAL: "normal",       // 普通のさとし
-    SALARYMAN: "salaryman"  // サラリーマンさとし
+    SALARYMAN: "salaryman", // サラリーマンさとし
+    SICK: "sick"            // 病弱さとし
 };
 
 // 初期状態
@@ -202,14 +203,15 @@ function updateCharacterSprite() {
         return;
     }
     const sprites = {
-        [FORMS.BABY]: "🥚",
-        [FORMS.MARU]: "👶",
-        [FORMS.TAMA]: "👦",
+        [FORMS.BABY]: "<img src='images/baby-satoshi.png' style='width: 80px; height: 80px; object-fit: contain; image-rendering: pixelated; vertical-align: middle;'>",
+        [FORMS.MARU]: "<img src='images/maru-satoshi.png' style='width: 80px; height: 80px; object-fit: contain; image-rendering: pixelated; vertical-align: middle;'>",
+        [FORMS.TAMA]: "<img src='images/tama-satoshi.png' style='width: 80px; height: 80px; object-fit: contain; image-rendering: pixelated; vertical-align: middle;'>",
         [FORMS.REVERSE]: "🙃",
         [FORMS.LEGEND]: "📹",
         [FORMS.IDOL]: "🎤",
-        [FORMS.NORMAL]: "<img src='images/normal-satoshi.png' style='width: 100px; height: 100px; object-fit: contain; image-rendering: pixelated; vertical-align: middle;'>",
-        [FORMS.SALARYMAN]: "👔"
+        [FORMS.NORMAL]: "<img src='images/normal-satoshi.png' style='width: 80px; height: 80px; object-fit: contain; image-rendering: pixelated; vertical-align: middle;'>",
+        [FORMS.SALARYMAN]: "👔",
+        [FORMS.SICK]: "🤒"
     };
     els.charSprite.innerHTML = sprites[state.form] || "❓";
 }
@@ -606,6 +608,10 @@ function handleThunder() {
         state.enemyPresent = false;
         state.stats.blackCount++;
         state.isAppealing = true;
+
+        // ブラックが右側に現れてアキラを追い払う演出
+        showBlackAttack();
+
         showThunderFlash();
         showFeedback("😆");
     } else {
@@ -623,15 +629,34 @@ function showThunderFlash() {
     setTimeout(() => flash.remove(), 500);
 }
 
-function showBlackConfused() {
-    // ブラック（黒い影）が一瞬現れて❓を出して帰る演出
+function showBlackAttack() {
+    // 撃退時に右側にブラックが現れる演出
     const black = document.createElement('div');
-    black.style.cssText = 'position:absolute;top:10px;left:10px;font-size:2rem;z-index:8;';
-    black.innerText = '😈';
+    // 右側に配置（right: 10px）
+    black.style.cssText = 'position:absolute;top:10px;right:10px;z-index:8;';
+    black.innerHTML = "<img src='images/black.png' style='width: 80px; height: 80px; object-fit: contain;'>";
     els.mainDisplay.appendChild(black);
 
     setTimeout(() => {
-        black.innerText = '❓';
+        black.style.transition = 'opacity 0.3s';
+        black.style.opacity = '0';
+    }, 800);
+
+    setTimeout(() => {
+        black.remove();
+    }, 1100);
+}
+
+function showBlackConfused() {
+    // ブラックが一瞬現れて❓を出して帰る演出
+    const black = document.createElement('div');
+    // こちらは左側でも右側でも良いが、統一感を持たせるるため右側にするか、元の左のままにするか。一旦右側にしておく。
+    black.style.cssText = 'position:absolute;top:10px;right:5px;z-index:8;';
+    black.innerHTML = "<img src='images/black.png' style='width: 80px; height: 80px; object-fit: contain;'>";
+    els.mainDisplay.appendChild(black);
+
+    setTimeout(() => {
+        black.innerHTML = '❓';
         black.style.fontSize = '2.5rem';
     }, 600);
 
@@ -725,7 +750,9 @@ function advanceTime() {
     }
     if (state.isSick) {
         state.stats.sickIgnoredCount++;
-        if (state.stats.sickIgnoredCount >= 2) {
+        // 5日目への進化のタイミング（4日目の最終ターン）なら死なせずに進化させる
+        const isEvolvingToDay5 = (state.day === 4 && state.timeIndex === 5);
+        if (state.stats.sickIgnoredCount >= 2 && !isEvolvingToDay5) {
             showGameOver("🪦");
             return;
         }
@@ -807,8 +834,12 @@ function checkEvolution() {
         // ★ 最終進化判定（信頼度も全ルートに関与）
         let nextForm = FORMS.NORMAL;
 
+        // 病弱さとし：病気状態で5日目を迎える
+        if (state.isSick) {
+            nextForm = FORMS.SICK;
+        }
         // 反転さとし：信頼度0 ＋ お世話ミス0 ＋ 🍙のみ与える
-        if (state.trust === 0 && state.careMistakes === 0 && state.stats.onigiriCount > 0 && state.stats.chocoCount === 0) {
+        else if (state.trust === 0 && state.careMistakes === 0 && state.stats.onigiriCount > 0 && state.stats.chocoCount === 0) {
             nextForm = FORMS.REVERSE;
         }
         // レジェンドYoutuber：信頼度高い(5以上) ＋ Youtube（ミニゲーム）失敗0(プレイ数1回以上) ＋ お世話ミス0
@@ -844,7 +875,8 @@ function getFormName(formId) {
         [FORMS.LEGEND]: "レジェンドYoutuberさとし",
         [FORMS.IDOL]: "アイドルさとし",
         [FORMS.NORMAL]: "普通のさとし",
-        [FORMS.SALARYMAN]: "サラリーマンさとし"
+        [FORMS.SALARYMAN]: "サラリーマンさとし",
+        [FORMS.SICK]: "病弱さとし"
     };
     return names[formId] || "さとし";
 }
@@ -868,7 +900,8 @@ function renderEncyclopedia() {
         { id: FORMS.LEGEND, name: "レジェンドYoutuber", icon: "📹" },
         { id: FORMS.IDOL, name: "アイドルさとし", icon: "🎤" },
         { id: FORMS.NORMAL, name: "普通のさとし", icon: "🧑" },
-        { id: FORMS.SALARYMAN, name: "サラリーマンさとし", icon: "👔" }
+        { id: FORMS.SALARYMAN, name: "サラリーマンさとし", icon: "👔" },
+        { id: FORMS.SICK, name: "病弱さとし", icon: "🤒" }
     ];
 
     allForms.forEach(f => {

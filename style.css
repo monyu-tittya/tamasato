@@ -127,18 +127,28 @@ body {
 }
 
 #tamagotchi-device {
-    width: 340px;
-    height: 480px;
-    background: radial-gradient(circle at 30% 30%, #ff9e9e, #d84545);
-    border-radius: 45% 45% 50% 50% / 60% 60% 40% 40%;
-    box-shadow: inset -10px -20px 20px rgba(0, 0, 0, 0.2),
-        10px 20px 30px rgba(0, 0, 0, 0.3);
-    border: 3px solid #b83030;
+    width: 500px;
+    height: 650px;
+    flex-shrink: 0;
+    background: url('images/hontai.png') no-repeat center center;
+    background-size: contain;
     display: flex;
     flex-direction: column;
     align-items: center;
-    padding: 30px 20px;
+    padding: 20px;
     position: relative;
+    filter: drop-shadow(10px 20px 20px rgba(0, 0, 0, 0.3));
+}
+
+
+.jagged-bezel {
+    width: 290px;
+    height: 290px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    margin-top: 155px;
+    margin-bottom: 5px;
 }
 
 /* メーカーロゴ風 */
@@ -158,11 +168,10 @@ body {
     height: 220px;
     background-color: #8fb488;
     /* 液晶の緑っぽさ */
-    border: 15px solid #eaeaea;
-    /* 画面ベゼル */
-    border-radius: 20px;
-    box-shadow: inset 0 3px 10px rgba(0, 0, 0, 0.4),
-        0 5px 10px rgba(0, 0, 0, 0.2);
+    border: 4px solid #333;
+    /* 画面内側の境界線 */
+    border-radius: 4px;
+    box-shadow: inset 0 2px 8px rgba(0, 0, 0, 0.6);
     display: flex;
     flex-direction: column;
     padding: 5px;
@@ -284,7 +293,7 @@ body {
     left: 45%;
     /* キャラクターの少し右~中央付近 */
     font-size: 1.5rem;
-    z-index: 4;
+    z-index: 6;
     display: flex;
     gap: 2px;
 }
@@ -294,7 +303,7 @@ body {
     bottom: 25px;
     left: 45%;
     font-size: 1.5rem;
-    z-index: 4;
+    z-index: 6;
     display: flex;
     gap: 2px;
     animation: slidePoop 1.5s cubic-bezier(0.2, 0, 0.2, 1) forwards;
@@ -569,8 +578,8 @@ body {
 #hardware-buttons {
     display: flex;
     justify-content: space-between;
-    width: 200px;
-    margin-top: 30px;
+    width: 220px;
+    margin-top: 10px;
 }
 
 .hw-btn-container {

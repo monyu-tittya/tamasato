@@ -16,85 +16,96 @@
         <!-- たまごっち本体（卵型筐体） -->
         <div id="tamagotchi-device">
             <!-- 画面上部のメーカー名やロゴ用装飾 -->
-            <div class="device-logo">TAMASATO</div>
+            <div class="device-logo" style="display: none;">TAMASATO</div>
 
-            <!-- LCD画面 -->
-            <div id="lcd-screen">
-                <!-- 上部アイコン列 -->
-                <div class="icon-row" id="top-icons">
-                    <div class="icon" id="icon-food" data-index="0"><img src="images/icon-food.png" alt="Food"></div>
-                    <div class="icon" id="icon-light" data-index="1"><img src="images/icon-light.png" alt="Light"></div>
-                    <div class="icon" id="icon-play" data-index="2"><img src="images/icon-play.png" alt="Play"></div>
-                    <div class="icon" id="icon-sick" data-index="3"><img src="images/icon-sick.png" alt="Sick"></div>
-                </div>
-
-                <!-- メイン表示領域 -->
-                <div id="main-display">
-                    <div id="room-background"></div>
-
-                    <!-- キャラクター -->
-                    <div id="character">
-                        <div id="char-sprite" class="form-baby">🥚</div>
-                    </div>
-
-                    <!-- うんち・病気・敵 -->
-                    <div id="poop-container"></div>
-                    <div id="sick-indicator" class="hidden">🏥</div>
-                    <div id="enemy-indicator" class="hidden">😈</div>
-
-                    <!-- エフェクト・オーバーレイ -->
-                    <div id="action-animation" class="hidden"></div>
-                    <div id="feedback-msg" class="hidden"></div>
-                    <div id="lights-overlay" class="hidden"></div>
-
-                    <!-- 専用画面（非表示切替） -->
-                    <!-- 時計・日数表示 -->
-                    <div id="clock-screen" class="sub-screen hidden">
-                        <div id="day-display">📅 0</div>
-                        <div id="time-display">⏰ 8:00 (🎯3)</div>
-                    </div>
-
-                    <!-- ステータス表示 -->
-                    <div id="stats-screen" class="sub-screen hidden">
-                        <div>🎂 <span id="stat-day">0</span></div>
-                        <div>😋 <span id="stat-hunger-hearts">🤍🤍🤍🤍🤍</span></div>
-                        <div>😊 <span id="stat-mood-hearts">🤍🤍🤍🤍🤍</span></div>
-                    </div>
-
-                    <!-- サブメニュー表示枠 -->
-                    <div id="submenu-screen" class="sub-screen hidden">
-                        <div id="submenu-title"></div>
-                        <div id="submenu-options">
-                            <!-- JSで動的生成 -->
+            <!-- ギザギザのベゼル -->
+            <div class="jagged-bezel">
+                <!-- LCD画面 -->
+                <div id="lcd-screen">
+                    <!-- 上部アイコン列 -->
+                    <div class="icon-row" id="top-icons">
+                        <div class="icon" id="icon-food" data-index="0"><img src="images/icon-food.png" alt="Food">
+                        </div>
+                        <div class="icon" id="icon-light" data-index="1"><img src="images/icon-light.png" alt="Light">
+                        </div>
+                        <div class="icon" id="icon-play" data-index="2"><img src="images/icon-play.png" alt="Play">
+                        </div>
+                        <div class="icon" id="icon-sick" data-index="3"><img src="images/icon-sick.png" alt="Sick">
                         </div>
                     </div>
 
-                    <!-- ゲームオーバー・ゲームクリア画面 -->
-                    <div id="game-over-screen" class="sub-screen hidden">
-                        <div id="game-over-reason">💀</div>
-                        <div class="blink-text">🔄 C ⏳</div>
-                    </div>
+                    <!-- メイン表示領域 -->
+                    <div id="main-display">
+                        <div id="room-background"></div>
 
-                    <!-- ミニゲーム画面 -->
-                    <div id="minigame-screen" class="sub-screen hidden">
-                        <div id="slot-machine">
-                            <div class="slot" id="slot-1">😆</div>
-                            <div class="slot" id="slot-2">😆</div>
-                            <div class="slot" id="slot-3">😆</div>
+                        <!-- キャラクター -->
+                        <div id="character">
+                            <div id="char-sprite" class="form-baby">🥚</div>
                         </div>
-                        <div id="minigame-instruction" class="blink-text">STOP(B)</div>
-                    </div>
-                </div>
 
-                <!-- 下部アイコン列 -->
-                <div class="icon-row" id="bottom-icons">
-                    <div class="icon" id="icon-toilet" data-index="4"><img src="images/icon-toilet.png" alt="Toilet">
+                        <!-- うんち・病気・敵 -->
+                        <div id="poop-container"></div>
+                        <div id="sick-indicator" class="hidden">🏥</div>
+                        <div id="enemy-indicator" class="hidden"><img src="images/akira.png"
+                                style="width: 80px; height: 80px; object-fit: contain;"></div>
+
+                        <!-- エフェクト・オーバーレイ -->
+                        <div id="action-animation" class="hidden"></div>
+                        <div id="feedback-msg" class="hidden"></div>
+                        <div id="lights-overlay" class="hidden"></div>
+
+                        <!-- 専用画面（非表示切替） -->
+                        <!-- 時計・日数表示 -->
+                        <div id="clock-screen" class="sub-screen hidden">
+                            <div id="day-display">📅 0</div>
+                            <div id="time-display">⏰ 8:00 (🎯3)</div>
+                        </div>
+
+                        <!-- ステータス表示 -->
+                        <div id="stats-screen" class="sub-screen hidden">
+                            <div>🎂 <span id="stat-day">0</span></div>
+                            <div>😋 <span id="stat-hunger-hearts">🤍🤍🤍🤍🤍</span></div>
+                            <div>😊 <span id="stat-mood-hearts">🤍🤍🤍🤍🤍</span></div>
+                        </div>
+
+                        <!-- サブメニュー表示枠 -->
+                        <div id="submenu-screen" class="sub-screen hidden">
+                            <div id="submenu-title"></div>
+                            <div id="submenu-options">
+                                <!-- JSで動的生成 -->
+                            </div>
+                        </div>
+
+                        <!-- ゲームオーバー・ゲームクリア画面 -->
+                        <div id="game-over-screen" class="sub-screen hidden">
+                            <div id="game-over-reason">💀</div>
+                            <div class="blink-text">🔄 C ⏳</div>
+                        </div>
+
+                        <!-- ミニゲーム画面 -->
+                        <div id="minigame-screen" class="sub-screen hidden">
+                            <div id="slot-machine">
+                                <div class="slot" id="slot-1">😆</div>
+                                <div class="slot" id="slot-2">😆</div>
+                                <div class="slot" id="slot-3">😆</div>
+                            </div>
+                            <div id="minigame-instruction" class="blink-text">STOP(B)</div>
+                        </div>
                     </div>
-                    <div class="icon" id="icon-status" data-index="5"><img src="images/icon-status.png" alt="Status">
-                    </div>
-                    <div class="icon" id="icon-discipline" data-index="6"><img src="images/icon-discipline.png"
-                            alt="Discipline"></div>
-                    <div class="icon" id="icon-thunder" data-index="7"><img src="images/icon-thunder.png" alt="Thunder">
+
+                    <!-- 下部アイコン列 -->
+                    <div class="icon-row" id="bottom-icons">
+                        <div class="icon" id="icon-toilet" data-index="4"><img src="images/icon-toilet.png"
+                                alt="Toilet">
+                        </div>
+                        <div class="icon" id="icon-status" data-index="5"><img src="images/icon-status.png"
+                                alt="Status">
+                        </div>
+                        <div class="icon" id="icon-discipline" data-index="6"><img src="images/icon-discipline.png"
+                                alt="Discipline"></div>
+                        <div class="icon" id="icon-thunder" data-index="7"><img src="images/icon-thunder.png"
+                                alt="Thunder">
+                        </div>
                     </div>
                 </div>
             </div>
