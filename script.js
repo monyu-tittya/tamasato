@@ -206,12 +206,12 @@ function updateCharacterSprite() {
         [FORMS.BABY]: "<img src='images/baby-satoshi.png' style='width: 80px; height: 80px; object-fit: contain; image-rendering: pixelated; vertical-align: middle;'>",
         [FORMS.MARU]: "<img src='images/maru-satoshi.png' style='width: 80px; height: 80px; object-fit: contain; image-rendering: pixelated; vertical-align: middle;'>",
         [FORMS.TAMA]: "<img src='images/tama-satoshi.png' style='width: 80px; height: 80px; object-fit: contain; image-rendering: pixelated; vertical-align: middle;'>",
-        [FORMS.REVERSE]: "🙃",
-        [FORMS.LEGEND]: "📹",
-        [FORMS.IDOL]: "🎤",
+        [FORMS.REVERSE]: "<img src='images/reverse-satoshi.png' style='width: 80px; height: 80px; object-fit: contain; image-rendering: pixelated; vertical-align: middle;'>",
+        [FORMS.LEGEND]: "<img src='images/legend-satoshi.png' style='width: 80px; height: 80px; object-fit: contain; image-rendering: pixelated; vertical-align: middle;'>",
+        [FORMS.IDOL]: "<img src='images/idol-satoshi.png' style='width: 80px; height: 80px; object-fit: contain; image-rendering: pixelated; vertical-align: middle;'>",
         [FORMS.NORMAL]: "<img src='images/normal-satoshi.png' style='width: 80px; height: 80px; object-fit: contain; image-rendering: pixelated; vertical-align: middle;'>",
-        [FORMS.SALARYMAN]: "👔",
-        [FORMS.SICK]: "🤒"
+        [FORMS.SALARYMAN]: "<img src='images/salaryman-satoshi.png' style='width: 80px; height: 80px; object-fit: contain; image-rendering: pixelated; vertical-align: middle;'>",
+        [FORMS.SICK]: "<img src='images/sick-satoshi.png' style='width: 80px; height: 80px; object-fit: contain; image-rendering: pixelated; vertical-align: middle;'>"
     };
 
     // すでに同じ内容がセットされていれば再描画をスキップしてチラつきを防止
@@ -896,12 +896,12 @@ function renderEncyclopedia() {
     const unlocked = JSON.parse(localStorage.getItem('satoshi_encyclopedia') || '[]');
 
     const allForms = [
-        { id: FORMS.REVERSE, name: "反転さとし", icon: "🙃" },
-        { id: FORMS.LEGEND, name: "レジェンドYoutuber", icon: "📹" },
-        { id: FORMS.IDOL, name: "アイドルさとし", icon: "🎤" },
-        { id: FORMS.NORMAL, name: "普通のさとし", icon: "🧑" },
-        { id: FORMS.SALARYMAN, name: "サラリーマンさとし", icon: "👔" },
-        { id: FORMS.SICK, name: "病弱さとし", icon: "🤒" }
+        { id: FORMS.REVERSE, name: "反転さとし", icon: "<img src='images/reverse-satoshi.png' style='width: 60px; height: 60px; object-fit: contain; image-rendering: pixelated;'>" },
+        { id: FORMS.LEGEND, name: "レジェンドYoutuber", icon: "<img src='images/legend-satoshi.png' style='width: 60px; height: 60px; object-fit: contain; image-rendering: pixelated;'>" },
+        { id: FORMS.IDOL, name: "アイドルさとし", icon: "<img src='images/idol-satoshi.png' style='width: 60px; height: 60px; object-fit: contain; image-rendering: pixelated;'>" },
+        { id: FORMS.NORMAL, name: "普通のさとし", icon: "<img src='images/normal-satoshi.png' style='width: 60px; height: 60px; object-fit: contain; image-rendering: pixelated;'>" },
+        { id: FORMS.SALARYMAN, name: "サラリーマンさとし", icon: "<img src='images/salaryman-satoshi.png' style='width: 60px; height: 60px; object-fit: contain; image-rendering: pixelated;'>" },
+        { id: FORMS.SICK, name: "病弱さとし", icon: "<img src='images/sick-satoshi.png' style='width: 60px; height: 60px; object-fit: contain; image-rendering: pixelated;'>" }
     ];
 
     allForms.forEach(f => {
