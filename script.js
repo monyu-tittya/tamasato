@@ -223,7 +223,7 @@ function updateUI() {
 function updateCharacterSprite() {
     // 死亡時はお墓表示
     if (state.isGameOver) {
-        els.charSprite.innerHTML = "<img src='images/haka-satoshi.png' style='width: 150px; height: 150px; object-fit: contain; image-rendering: pixelated; vertical-align: middle;'>";
+        els.charSprite.innerHTML = "<img src='images/haka-satoshi.png' style='width: 80px; height: 80px; object-fit: contain; image-rendering: pixelated; vertical-align: middle;'>";
         return;
     }
     const sprites = {
@@ -812,14 +812,14 @@ function advanceTime() {
         // 5日目への進化のタイミング（4日目の最終ターン）なら死なせずに進化させる
         const isEvolvingToDay5 = (state.day === 4 && state.timeIndex === 5);
         if (state.stats.sickIgnoredCount >= 3 && !isEvolvingToDay5) {
-            showGameOver("<img src='images/haka-satoshi.png' style='width: 100px; height: 100px; object-fit: contain;'>");
+            showGameOver("<img src='images/haka-satoshi.png' style='width: 80px; height: 80px; object-fit: contain;'>");
             return;
         }
     }
 
     // 死亡判定 (空腹0のままターン進行)
     if (state.hunger <= 0) {
-        showGameOver("<img src='images/haka-satoshi.png' style='width: 100px; height: 100px; object-fit: contain;'>");
+        showGameOver("<img src='images/haka-satoshi.png' style='width: 80px; height: 80px; object-fit: contain;'>");
         return;
     }
 
