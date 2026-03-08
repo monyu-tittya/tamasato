@@ -46,6 +46,7 @@
                         <!-- うんち・病気・敵 -->
                         <div id="poop-container"></div>
                         <div id="sick-indicator" class="hidden">🏥</div>
+                        <div id="sick-particles" class="hidden"></div>
                         <div id="enemy-indicator" class="hidden"><img src="images/akira.png"
                                 style="width: 80px; height: 80px; object-fit: contain;"></div>
 
@@ -135,18 +136,65 @@
             <div>空腹度 <span id="ext-hunger">0</span></div>
             <div>機嫌度 <span id="ext-mood">0</span></div>
             <div>世話ﾐｽ <span id="ext-mistakes">0</span></div>
+            <div>信頼度 <span id="ext-trust">0</span></div>
+            <div>撮影成功 <span id="ext-minigames">0</span></div>
         </div>
 
         <!-- 外部ボタン群（筐体の外） -->
         <div id="external-buttons">
             <button id="btn-advance-out" class="ext-btn ext-btn-advance">⏩ 時間を進める</button>
             <button id="btn-encyclopedia-out" class="ext-btn ext-btn-encyclopedia">📖 図鑑</button>
+            <button id="btn-hint-out" class="ext-btn ext-btn-hint">❓ ヒント</button>
         </div>
         <div id="encyclopedia-modal" class="modal hidden">
             <div class="modal-content">
                 <span class="close-btn" id="btn-close-encyclopedia">&times;</span>
                 <h2>さとし図鑑</h2>
                 <div id="encyclopedia-grid"></div>
+            </div>
+        </div>
+
+        <!-- ヒントモーダル -->
+        <div id="hint-modal" class="modal hidden">
+            <div class="modal-content" style="text-align: left;">
+                <span class="close-btn" id="btn-close-hint">&times;</span>
+                <h2 style="text-align: center; margin-bottom: 10px;">遊び方のヒント</h2>
+
+                <div style="margin-bottom: 15px;">
+                    <h3 style="border-bottom: 1px solid #ccc; padding-bottom: 5px;">【基本操作】</h3>
+                    <p style="margin: 5px 0;"><strong>左ボタン:</strong> アイコンを選ぶ / 選択肢を選ぶ</p>
+                    <p style="margin: 5px 0;"><strong>中ボタン:</strong> 決定 / 時計を見る / スロットゲームのストップ</p>
+                    <p style="margin: 5px 0;"><strong>右ボタン:</strong> キャンセル / 戻る / 長押し(1秒)で🥚リセット</p>
+                </div>
+
+                <div style="margin-bottom: 15px;">
+                    <h3 style="border-bottom: 1px solid #ccc; padding-bottom: 5px;">【各アイコンの機能】</h3>
+                    <p style="margin: 5px 0;">🍚 <strong>ごはん:</strong> 🍙(空腹２回復) / チョコ(空腹１・機嫌１回復)</p>
+                    <p style="margin: 5px 0;">💡 <strong>電気:</strong> 21:00 に使用して消灯</p>
+                    <p style="margin: 5px 0;">📺 <strong>動画撮影:</strong> スロットで😆を揃えよう</p>
+                    <p style="margin: 5px 0;">💉 <strong>治療:</strong> 病気の時に使用</p>
+                    <p style="margin: 5px 0;">🚽 <strong>トイレ:</strong> ウンチをしたら使用</p>
+                    <p style="margin: 5px 0;">📊 <strong>ステータス:</strong> 経過日数、空腹度、機嫌度を確認</p>
+                    <p style="margin: 5px 0;">📢 <strong>誉める:</strong> 治療・アキラ撃退後に使うと信頼度UP</p>
+                    <p style="margin: 5px 0;">⚡ <strong>雷:</strong> アキラが来たら使用（ブラックが助けに来る）</p>
+                </div>
+
+                <div>
+                    <h3 style="border-bottom: 1px solid #ccc; padding-bottom: 5px;">【進化条件】</h3>
+                    <ul style="padding-left: 20px; margin-top: 5px;">
+                        <li style="margin-bottom: 5px;"><strong>レジェンドYoutuber:</strong> 信頼度5以上・ミニゲーム失敗なし(1回以上プレイ)・お世話ミス0
+                        </li>
+                        <li style="margin-bottom: 5px;"><strong>反転:</strong> 信頼度0・お世話ミス0・おにぎりのみ与える</li>
+                        <li style="margin-bottom: 5px;"><strong>アイドル:</strong> 信頼度5以上・チョコのみ与える</li>
+                        <li style="margin-bottom: 5px;"><strong>病弱:</strong> 病気状態で5日目を迎える</li>
+                        <li style="margin-bottom: 5px;"><strong>サラリーマン:</strong> ⚡を一度も使わない（ブラックと出会わない）</li>
+                        <li style="margin-bottom: 5px;"><strong>普通:</strong> それ以外</li>
+                    </ul>
+                    <p style="margin-top: 10px; font-size: 0.85em; color: #666; text-align: center;">※信頼度は誉める成功で上昇</p>
+                    <p style="margin-top: 10px; font-size: 0.85em; color: #666; text-align: center;">※病気を３ターン放置すると死亡</p>
+                    <p style="margin-top: 10px; font-size: 0.85em; color: #666; text-align: center;">※空腹0で次のターンに進むと死亡
+                    </p>
+                </div>
             </div>
         </div>
     </div>

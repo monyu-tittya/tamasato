@@ -371,6 +371,69 @@ body {
     }
 }
 
+/* 病気フィルター（顔を少し青く） */
+.sick-filter {
+    filter: sepia(100%) hue-rotate(180deg) saturate(150%) brightness(0.9);
+}
+
+/* 病気のパーティクル（💀）のアニメーション */
+#sick-particles {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 100px;
+    height: 100px;
+    z-index: 10;
+    pointer-events: none;
+}
+
+#sick-particles span {
+    position: absolute;
+    font-size: 1.5rem;
+    opacity: 0;
+    animation: sickSkullFloat 2s infinite;
+}
+
+/* それぞれタイミングと位置をずらす */
+#sick-particles span:nth-child(1) {
+    left: 10px;
+    top: 10px;
+    animation-delay: 0s;
+}
+
+#sick-particles span:nth-child(2) {
+    right: 10px;
+    top: 30px;
+    animation-delay: 0.6s;
+}
+
+#sick-particles span:nth-child(3) {
+    left: 40px;
+    top: -10px;
+    animation-delay: 1.2s;
+}
+
+@keyframes sickSkullFloat {
+    0% {
+        transform: translateY(0) scale(0.8);
+        opacity: 0;
+    }
+
+    20% {
+        opacity: 0.8;
+    }
+
+    80% {
+        transform: translateY(-30px) scale(1.1);
+        opacity: 0;
+    }
+
+    100% {
+        opacity: 0;
+    }
+}
+
 /* トイレの水流アニメーション */
 #water-wave {
     position: absolute;
@@ -756,6 +819,16 @@ body {
 
 .ext-btn-encyclopedia:hover {
     background: linear-gradient(135deg, #c5e1a5, #7cb342);
+}
+
+.ext-btn-hint {
+    background: linear-gradient(135deg, #ffd54f, #f57f17);
+    color: #fff;
+    border-color: #e65100;
+}
+
+.ext-btn-hint:hover {
+    background: linear-gradient(135deg, #ffe082, #fbc02d);
 }
 
 /* 雷アイコン選択時のアクティブ演出 */

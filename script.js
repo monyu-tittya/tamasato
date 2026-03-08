@@ -70,6 +70,8 @@ const els = {
     extHunger: document.getElementById('ext-hunger'),
     extMood: document.getElementById('ext-mood'),
     extMistakes: document.getElementById('ext-mistakes'),
+    extTrust: document.getElementById('ext-trust'),
+    extMinigames: document.getElementById('ext-minigames'),
 
     // 時計のテキスト用
     dayDisp: document.getElementById('day-display'),
@@ -145,7 +147,7 @@ function updateUI() {
     els.gameOverScreen.classList.toggle('hidden', !state.isGameOver);
 
     if (state.isGameOver) {
-        els.gameOverReason.innerText = state.isGameOverReason || "しんでしまった";
+        els.gameOverReason.innerHTML = state.isGameOverReason || "しんでしまった";
     }
 
     // 時計更新
@@ -158,15 +160,32 @@ function updateUI() {
     document.getElementById('stat-mood-hearts').innerText = "🖤".repeat(state.mood) + "🤍".repeat(5 - state.mood);
 
     // インジケーター類
-    els.sickInd.classList.toggle('hidden', !state.isSick);
+    // els.sickInd.classList.toggle('hidden', !state.isSick); // 病院マークは非表示にする
     els.enemyInd.classList.toggle('hidden', !state.enemyPresent);
     els.lightsOverlay.classList.toggle('hidden', !state.lightsOff);
+
+    // キャラクターの病気表現 (顔色を青く)
+    els.charSprite.classList.toggle('sick-filter', state.isSick);
+
+    // 病気時の💀パーティクル生成・表示
+    const sickParticles = document.getElementById('sick-particles');
+    if (sickParticles) {
+        if (state.isSick) {
+            sickParticles.classList.remove('hidden');
+            if (sickParticles.innerHTML === '') {
+                sickParticles.innerHTML = '<span>💀</span><span>💀</span><span>💀</span>';
+            }
+        } else {
+            sickParticles.classList.add('hidden');
+            sickParticles.innerHTML = '';
+        }
+    }
 
     // うんち描画
     els.poopContainer.innerHTML = '';
     for (let i = 0; i < state.poopCount; i++) {
         const poop = document.createElement('span');
-        poop.innerText = '💩';
+        poop.innerHTML = "<img src='images/unchi.png' style='width: 48px; height: 48px; object-fit: contain;'>";
         els.poopContainer.appendChild(poop);
     }
 
@@ -191,6 +210,11 @@ function updateUI() {
     if (els.extHunger) els.extHunger.innerText = state.hunger;
     if (els.extMood) els.extMood.innerText = state.mood;
     if (els.extMistakes) els.extMistakes.innerText = state.careMistakes;
+    if (els.extTrust) els.extTrust.innerText = state.trust;
+    if (els.extMinigames) {
+        const successCount = state.stats.playCount - (state.stats.minigameFailures || 0);
+        els.extMinigames.innerText = successCount;
+    }
 
     updateCharacterSprite();
     updateBackground();
@@ -199,7 +223,7 @@ function updateUI() {
 function updateCharacterSprite() {
     // 死亡時はお墓表示
     if (state.isGameOver) {
-        els.charSprite.innerHTML = '🪦';
+        els.charSprite.innerHTML = "<img src='images/haka-satoshi.png' style='width: 80px; height: 80px; object-fit: contain; image-rendering: pixelated; vertical-align: middle;'>";
         return;
     }
     const sprites = {
@@ -247,7 +271,7 @@ function showGameOver(reason) {
     // 👻 幽霊を浮かべる
     const ghost = document.createElement('div');
     ghost.id = 'ghost-float';
-    ghost.innerText = '👻';
+    ghost.innerHTML = "<img src='images/ghost-satoshi.png' style='width: 80px; height: 80px; object-fit: contain;'>";
     els.mainDisplay.appendChild(ghost);
 
     saveState();
@@ -347,6 +371,17 @@ function setupEventListeners() {
     document.getElementById('btn-close-encyclopedia').addEventListener('click', () => {
         document.getElementById('encyclopedia-modal').classList.add('hidden');
     });
+
+    // 外部ボタン: ヒント
+    const hintBtn = document.getElementById('btn-hint-out');
+    if (hintBtn) {
+        hintBtn.addEventListener('click', () => {
+            document.getElementById('hint-modal').classList.remove('hidden');
+        });
+    }
+    document.getElementById('btn-close-hint').addEventListener('click', () => {
+        document.getElementById('hint-modal').classList.add('hidden');
+    });
 }
 
 function handleBtnA() {
@@ -433,10 +468,8 @@ function executeIconAction(index) {
             state.subScreen = 'stats';
             break;
         case 6: // しつけ
-            openSubmenu("<img src='images/icon-discipline.png' style='width: 20px; vertical-align: middle;'>", [
-                { label: "💢 しかる", action: scold },
-                { label: "👏 ほめる", action: praise }
-            ]);
+            praise();
+            state.cursorIndex = -1;
             break;
         case 7: // 雷（⚡）
             handleThunder();
@@ -549,6 +582,24 @@ function useToilet() {
         els.mainDisplay.appendChild(fakePoops);
 
         state.poopCount = 0;
+
+        let fakeEnemy = null;
+        if (state.enemyPresent) {
+            fakeEnemy = els.enemyInd.cloneNode(true);
+            fakeEnemy.id = ''; // 元のID設定を外す
+            // 流されるときは悲しい顔の画像に差し替え
+            const img = fakeEnemy.querySelector('img');
+            if (img) img.src = 'images/akira-sad.png';
+            fakeEnemy.style.position = 'absolute';
+            fakeEnemy.style.top = '10px';
+            fakeEnemy.style.left = '10px';
+            fakeEnemy.style.zIndex = '6';
+            fakeEnemy.classList.remove('hidden');
+            fakeEnemy.style.animation = 'slidePoop 1.5s cubic-bezier(0.2, 0, 0.2, 1) forwards';
+            els.mainDisplay.appendChild(fakeEnemy);
+            state.enemyPresent = false;
+        }
+
         saveState();
 
         // 波のアニメーション要素
@@ -556,10 +607,11 @@ function useToilet() {
         wave.id = 'water-wave';
         els.mainDisplay.appendChild(wave);
 
-        // タイミングを合わせてフェイクうんちを消す
+        // タイミングを合わせてフェイクうんち(とアキラ)を消す
         setTimeout(() => {
             if (fakePoops) fakePoops.remove();
-            showFeedback("☺️");
+            if (fakeEnemy) fakeEnemy.remove();
+            showFeedback("😌");
         }, 800);
 
         // アニメーション終了後に波要素自体を削除
@@ -580,7 +632,7 @@ function treatSick() {
         state.isSick = false;
         state.stats.sickIgnoredCount = 0;
         state.isAppealing = true; // 治療後にアピール状態になる
-        showFeedback("☺️");
+        showFeedback("😆");
     } else {
         showFeedback("❓️");
         state.careMistakes++;
@@ -657,13 +709,12 @@ function showBlackConfused() {
     const black = document.createElement('div');
     // こちらは左側でも右側でも良いが、統一感を持たせるるため右側にするか、元の左のままにするか。一旦右側にしておく。
     black.style.cssText = 'position:absolute;top:10px;right:5px;z-index:8;';
-    black.innerHTML = "<img src='images/black.png' style='width: 80px; height: 80px; object-fit: contain;'>";
+    // ブラック画像の右上に「❓」を配置
+    black.innerHTML = `
+        <img src='images/black.png' style='width: 80px; height: 80px; object-fit: contain;'>
+        <div style='position:absolute; top:-10px; right:-10px; font-size: 2rem; font-weight: bold;'>❓</div>
+    `;
     els.mainDisplay.appendChild(black);
-
-    setTimeout(() => {
-        black.innerHTML = '❓';
-        black.style.fontSize = '2.5rem';
-    }, 600);
 
     setTimeout(() => {
         black.style.transition = 'opacity 0.3s';
@@ -748,7 +799,10 @@ function advanceTime() {
     // 死亡とミス判定
     if (state.poopCount >= 1) state.careMistakes++;
     if (state.poopCount >= 2) {
-        if (Math.random() < 0.5) state.isSick = true;
+        if (Math.random() < 0.5 && !state.isSick) {
+            state.isSick = true;
+            state.stats.sickTotalCount = (state.stats.sickTotalCount || 0) + 1;
+        }
     }
     if (state.enemyPresent) {
         state.careMistakes++; // 敵放置
@@ -757,15 +811,15 @@ function advanceTime() {
         state.stats.sickIgnoredCount++;
         // 5日目への進化のタイミング（4日目の最終ターン）なら死なせずに進化させる
         const isEvolvingToDay5 = (state.day === 4 && state.timeIndex === 5);
-        if (state.stats.sickIgnoredCount >= 2 && !isEvolvingToDay5) {
-            showGameOver("🪦");
+        if (state.stats.sickIgnoredCount >= 3 && !isEvolvingToDay5) {
+            showGameOver("<img src='images/haka-satoshi.png' style='width: 40px; height: 40px; object-fit: contain;'>");
             return;
         }
     }
 
     // 死亡判定 (空腹0のままターン進行)
     if (state.hunger <= 0) {
-        showGameOver("🪦");
+        showGameOver("<img src='images/haka-satoshi.png' style='width: 40px; height: 40px; object-fit: contain;'>");
         return;
     }
 
@@ -777,6 +831,12 @@ function advanceTime() {
     if (state.timeIndex >= TIME_SESSIONS.length) {
         state.timeIndex = 0;
         state.day++;
+
+        // ★ 日付をまたいだら（21:00のターン終了時に）敵がいれば勝手に帰る
+        if (state.enemyPresent) {
+            state.enemyPresent = false;
+        }
+
         checkEvolution();
     }
 
@@ -785,20 +845,12 @@ function advanceTime() {
         updateStat('hunger', -1);
         updateStat('mood', -1);
 
-        // ★ おねだり（ワガママ）発生: 空腹か機嫌が満タンなのにアピールしてくる => 「叱る」チャンス
-        if ((state.hunger >= 4 || state.mood >= 4) && Math.random() < 0.4) {
-            state.isDemanding = true;
-            const msgs = [
-                "🥺"
-            ];
-            showFeedback(msgs[Math.floor(Math.random() * msgs.length)]);
-        }
 
         // ★ 助けてアピール発生
-        if (!state.isDemanding && Math.random() < 0.25) {
+        if ((state.hunger >= 2) && Math.random() < 0.4) {
             state.isAppealing = true;
             const msgs = [
-                "🥺"
+                "hungry…"
             ];
             showFeedback(msgs[Math.floor(Math.random() * msgs.length)]);
         }
@@ -806,8 +858,13 @@ function advanceTime() {
         // ランダムイベント
         let eventTriggered = false;
         if (Math.random() < 0.25 && state.poopCount < 4) state.poopCount++;
-        if (Math.random() < 0.2 && !state.isSick && !state.enemyPresent) {
+
+        // ★ 4日目は病気になる確率をアップ (通常20% → 60%)
+        const sickProbability = (state.day === 4) ? 0.6 : 0.2;
+
+        if (Math.random() < sickProbability && !state.isSick && !state.enemyPresent) {
             state.isSick = true;
+            state.stats.sickTotalCount = (state.stats.sickTotalCount || 0) + 1;
             eventTriggered = true;
             showFeedback("🤒");
         }
