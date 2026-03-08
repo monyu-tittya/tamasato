@@ -223,26 +223,36 @@ function updateUI() {
 function updateCharacterSprite() {
     // 死亡時はお墓表示
     if (state.isGameOver) {
-        els.charSprite.innerHTML = "<img src='images/haka-satoshi.png' style='width: 80px; height: 80px; object-fit: contain; image-rendering: pixelated; vertical-align: middle;'>";
+        const currentImg = els.charSprite.querySelector('img');
+        if (!currentImg || !currentImg.src.includes('haka-satoshi.png')) {
+            els.charSprite.innerHTML = "<img src='images/haka-satoshi.png' style='width: 80px; height: 80px; object-fit: contain; image-rendering: pixelated; vertical-align: middle;'>";
+        }
         return;
     }
-    const sprites = {
-        [FORMS.BABY]: "<img src='images/baby-satoshi.png' style='width: 80px; height: 80px; object-fit: contain; image-rendering: pixelated; vertical-align: middle;'>",
-        [FORMS.MARU]: "<img src='images/maru-satoshi.png' style='width: 80px; height: 80px; object-fit: contain; image-rendering: pixelated; vertical-align: middle;'>",
-        [FORMS.TAMA]: "<img src='images/tama-satoshi.png' style='width: 80px; height: 80px; object-fit: contain; image-rendering: pixelated; vertical-align: middle;'>",
-        [FORMS.REVERSE]: "<img src='images/reverse-satoshi.png' style='width: 80px; height: 80px; object-fit: contain; image-rendering: pixelated; vertical-align: middle;'>",
-        [FORMS.LEGEND]: "<img src='images/legend-satoshi.png' style='width: 80px; height: 80px; object-fit: contain; image-rendering: pixelated; vertical-align: middle;'>",
-        [FORMS.IDOL]: "<img src='images/idol-satoshi.png' style='width: 80px; height: 80px; object-fit: contain; image-rendering: pixelated; vertical-align: middle;'>",
-        [FORMS.NORMAL]: "<img src='images/normal-satoshi.png' style='width: 80px; height: 80px; object-fit: contain; image-rendering: pixelated; vertical-align: middle;'>",
-        [FORMS.SALARYMAN]: "<img src='images/salaryman-satoshi.png' style='width: 80px; height: 80px; object-fit: contain; image-rendering: pixelated; vertical-align: middle;'>",
-        [FORMS.SICK]: "<img src='images/sick-satoshi.png' style='width: 80px; height: 80px; object-fit: contain; image-rendering: pixelated; vertical-align: middle;'>"
+    const spriteSrcs = {
+        [FORMS.BABY]: "images/baby-satoshi.png",
+        [FORMS.MARU]: "images/maru-satoshi.png",
+        [FORMS.TAMA]: "images/tama-satoshi.png",
+        [FORMS.REVERSE]: "images/reverse-satoshi.png",
+        [FORMS.LEGEND]: "images/legend-satoshi.png",
+        [FORMS.IDOL]: "images/idol-satoshi.png",
+        [FORMS.NORMAL]: "images/normal-satoshi.png",
+        [FORMS.SALARYMAN]: "images/salaryman-satoshi.png",
+        [FORMS.SICK]: "images/sick-satoshi.png"
     };
 
-    // すでに同じ内容がセットされていれば再描画をスキップしてチラつきを防止
-    const newHTML = sprites[state.form] || "❓";
-    if (els.charSprite.innerHTML !== newHTML) {
-        els.charSprite.innerHTML = newHTML;
+    const newSrc = spriteSrcs[state.form];
+    if (!newSrc) {
+        els.charSprite.innerHTML = "❓";
+        return;
     }
+
+    // 既に同じ画像がセットされていれば再描画をスキップしてチラつきを防止
+    const currentImg = els.charSprite.querySelector('img');
+    if (currentImg && currentImg.src.includes(newSrc)) {
+        return; // 同じ画像なのでスキップ
+    }
+    els.charSprite.innerHTML = `<img src='${newSrc}' style='width: 80px; height: 80px; object-fit: contain; image-rendering: pixelated; vertical-align: middle;'>`;
 }
 
 function updateBackground() {

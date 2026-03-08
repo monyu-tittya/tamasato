@@ -289,7 +289,7 @@ body {
 /* ウンチなど */
 #poop-container {
     position: absolute;
-    bottom: 25px;
+    bottom: 15px;
     left: 45%;
     /* キャラクターの少し右~中央付近 */
     font-size: 1.5rem;
@@ -882,6 +882,6 @@ body {
 /* スマホ向け: 本体を下にずらしてステータスとの重なりを防止 */
 @media (max-width: 768px) {
     #tamagotchi-device {
-        margin-top: 50px;
+        margin-top: 100px;
     }
 }
