@@ -300,7 +300,7 @@ body {
 
 #fake-poops {
     position: absolute;
-    bottom: 25px;
+    bottom: 15px;
     left: 45%;
     font-size: 1.5rem;
     z-index: 6;

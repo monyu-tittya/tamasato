@@ -152,7 +152,7 @@ function updateUI() {
 
     // 時計更新
     els.dayDisp.innerText = `📅 ${state.day}`;
-    els.timeDisp.innerText = `⏰ ${TIME_SESSIONS[state.timeIndex]} (🎯${state.actionsLeft})`;
+    els.timeDisp.innerText = `⏰ ${TIME_SESSIONS[state.timeIndex]} (残${state.actionsLeft})`;
 
     // ステータス更新（ハートで表現）
     document.getElementById('stat-day').innerText = state.day;
@@ -491,7 +491,7 @@ function executeIconAction(index) {
 // ------ アクションロジック ------
 function consumeAction() {
     if (state.actionsLeft <= 0) {
-        showFeedback("⚠️ ⏩!");
+        showFeedback("行動0⏩!");
         return false;
     }
     state.actionsLeft--;
@@ -815,7 +815,7 @@ function advanceTime() {
         }
     }
     if (state.enemyPresent) {
-        state.careMistakes++; // 敵放置
+        // アキラ放置（世話ミスにはカウントしない）
     }
     if (state.isSick) {
         state.stats.sickIgnoredCount++;
